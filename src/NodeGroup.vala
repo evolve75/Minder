@@ -217,7 +217,7 @@ public class NodeGroup : Object {
   //-------------------------------------------------------------
   // Loads the note value from the given XML node
   private void load_note( Xml.Node* n ) {
-    if( (n->children != null) && (n->children->type == Xml.ElementType.TEXT_NODE) ) {
+    if( Utils.has_text_content( n ) ) {
       note = n->children->get_content();
     }
   }
