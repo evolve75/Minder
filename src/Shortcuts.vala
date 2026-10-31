@@ -96,6 +96,13 @@ public class Shortcut {
     }
   }
 
+  // True if the primary modifier (Command on macOS, Control elsewhere) is used
+  public bool control {
+    get {
+      return( _control );
+    }
+  }
+
   //-------------------------------------------------------------
   // Default constructor.
   public Shortcut( uint keycode, bool control, bool shift, bool alt, KeyCommand command ) {

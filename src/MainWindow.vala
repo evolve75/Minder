@@ -1970,12 +1970,7 @@ public class MainWindow : Gtk.ApplicationWindow {
   // state of the undo and redo buffer buttons.
   public void do_buffer_changed( UndoBuffer buf ) {
 #if PRIMARY_COMMAND
-    // The map and its text editor have separate undo buffers; the menu follows
-    // whichever one is current rather than whichever one just changed.
-    var current_map = get_current_map();
-    var menu_buf    = (current_map != null) ? current_map.current_undo_buffer() : buf;
-    set_menu_item_enable( KeyCommand.UNDO_ACTION, menu_buf.undoable() );
-    set_menu_item_enable( KeyCommand.REDO_ACTION, menu_buf.redoable() );
+    update_macos_menu_state();
 #endif
     _undo_btn.set_sensitive( buf.undoable() );
     _undo_btn.set_tooltip_markup( Utils.tooltip_with_accel( buf.undo_tooltip(), get_accelerator( KeyCommand.UNDO_ACTION ) ) );
@@ -2065,6 +2060,9 @@ public class MainWindow : Gtk.ApplicationWindow {
   //-------------------------------------------------------------
   // Called whenever the node selection changes in the canvas
   private void on_current_changed( MindMap map ) {
+#if PRIMARY_COMMAND
+    update_macos_menu_state();
+#endif
     action_set_enabled( "win.action_zoom_selected", (map.get_current_node() != null) );
     _focus_btn.active = map.focus_mode;
     map.model.update_css();
@@ -2732,8 +2730,11 @@ public class MainWindow : Gtk.ApplicationWindow {
   }
 
 #if PRIMARY_COMMAND
+  private Gee.ArrayList<KeyCommand> _menu_commands = new Gee.ArrayList<KeyCommand>();
+
   //-------------------------------------------------------------
-  // Appends a menu bar item whose key equivalent mirrors the command's shortcut.
+  // Appends a curated menu bar item whose key equivalent mirrors the
+  // command's shortcut.
   private void append_menubar_item( GLib.Menu menu, KeyCommand command, string label ) {
     var item = new GLib.MenuItem( label, "win.%s".printf( command.to_string() ) );
     var accel = get_accelerator( command );
@@ -2745,15 +2746,166 @@ public class MainWindow : Gtk.ApplicationWindow {
   }
 
   //-------------------------------------------------------------
-  // Builds the macOS menu bar from commands that behave the same in every
-  // map state, so that menu and keyboard activation are interchangeable.
-  // Selection-dependent commands (cut, copy, paste) are not included.
+  // Appends an item that targets a widget action (e.g. clipboard.copy) so the
+  // focused widget decides how to handle it.
+  private void append_widget_action_item( GLib.Menu menu, string label, string action, string accel ) {
+    var item = new GLib.MenuItem( label, action );
+    item.set_attribute_value( "accel", new Variant.string( accel ) );
+    menu.append_item( item );
+  }
+
+  //-------------------------------------------------------------
+  // Registers a window action for the command without any accelerator.
+  private void add_menu_action( KeyCommand command ) {
+    if( _actions.lookup_action( command.to_string() ) != null ) return;
+    var action = new SimpleAction( command.to_string(), null );
+    action.activate.connect((v) => {
+      var func = command.get_func();
+      func( get_current_map(), false );
+    });
+    _actions.add_action( action );
+  }
+
+  //-------------------------------------------------------------
+  // Returns true if the command is already provided elsewhere in the menu bar.
+  private bool menubar_skips( KeyCommand command ) {
+    switch( command ) {
+      case KeyCommand.SHOW_ABOUT :
+      case KeyCommand.SHOW_PREFERENCES :
+      case KeyCommand.QUIT :
+      case KeyCommand.SHOW_FIND :
+      case KeyCommand.SHOW_SHORTCUTS :
+      case KeyCommand.SHOW_DOCUMENTATION :
+      case KeyCommand.SHOW_RELEASES :
+      case KeyCommand.EDIT_COPY :
+      case KeyCommand.EDIT_CUT :
+      case KeyCommand.EDIT_PASTE :
+      case KeyCommand.EDIT_SELECT_ALL :
+      case KeyCommand.TAB_CLOSE_CURRENT :
+        return( true );
+      default :
+        return( false );
+    }
+  }
+
+  //-------------------------------------------------------------
+  // Appends a generated item for the command.  Shortcuts that include the
+  // primary modifier become key equivalents; all others (and the Markdown
+  // commands, which behave differently from the keyboard) show their shortcut
+  // in the label so plain keys keep flowing to the canvas.  Items are enabled
+  // only while the command is valid for the current map state.
+  private void append_generated_item( GLib.Menu menu, KeyCommand command ) {
+    var label    = command.shortcut_label();
+    var shortcut = shortcuts.get_shortcut( command );
+    var markdown = (KeyCommand.EDIT_MARKDOWN_START < command) && (command < KeyCommand.EDIT_MARKDOWN_END);
+    string? accel = null;
+    if( shortcut != null ) {
+      if( shortcut.control && !markdown ) {
+        accel = shortcut.get_accelerator();
+      } else {
+        label = "%s    [%s]".printf( label, shortcut.get_label() );
+      }
+    }
+    var item = new GLib.MenuItem( label, "win.%s".printf( command.to_string() ) );
+    if( accel != null ) {
+      item.set_attribute_value( "accel", new Variant.string( accel ) );
+    }
+    menu.append_item( item );
+    add_menu_action( command );
+    _menu_commands.add( command );
+  }
+
+  //-------------------------------------------------------------
+  // Generates menus from the command registry, using the same sections and
+  // groups as the shortcuts cheatsheet.
+  private void generate_command_menus( GLib.Menu menubar, GLib.Menu edit_menu ) {
+
+    GLib.Menu? section_menu = null;
+    GLib.Menu? group_menu   = null;
+    string     section_name = "";
+    string     group_name   = "";
+    var        skipping     = false;
+    var        text_menu    = new GLib.Menu();
+
+    for( int i=0; i<KeyCommand.NUM; i++ ) {
+      var command = (KeyCommand)i;
+      if( !command.viewable() ) continue;
+      if( command.is_section_start() ) {
+        // Flush the previous section
+        flush_group( section_menu, ref group_menu, group_name );
+        flush_section( menubar, text_menu, section_menu, section_name );
+        section_menu = new GLib.Menu();
+        group_menu   = null;
+        skipping     = false;
+        switch( command ) {
+          case KeyCommand.GENERAL_START :  section_name = _( "Map" );     break;
+          case KeyCommand.EDIT_START    :  section_name = "";             break;
+          default                       :  section_name = command.shortcut_label();  break;
+        }
+        if( command == KeyCommand.EDIT_START ) {
+          section_menu = text_menu;
+        }
+      } else if( command.is_section_end() ) {
+        continue;
+      } else if( command.is_group_end() ) {
+        flush_group( section_menu, ref group_menu, group_name );
+        skipping = false;
+      } else if( command.is_group_start() ) {
+        flush_group( section_menu, ref group_menu, group_name );
+        group_name = command.shortcut_label();
+        group_menu = new GLib.Menu();
+        // Groups provided by the curated menus are skipped, with their commands
+        switch( command ) {
+          case KeyCommand.FILE_START :
+          case KeyCommand.UNDO_START :
+          case KeyCommand.ZOOM_START :
+          case KeyCommand.SIDEBAR_START :
+            group_menu = null;
+            skipping   = true;
+            break;
+          default :
+            skipping = false;
+            break;
+        }
+      } else if( (section_menu != null) && !skipping && !menubar_skips( command ) ) {
+        append_generated_item( (group_menu != null) ? group_menu : section_menu, command );
+      }
+    }
+    flush_group( section_menu, ref group_menu, group_name );
+    flush_section( menubar, text_menu, section_menu, section_name );
+
+    if( text_menu.get_n_items() > 0 ) {
+      edit_menu.append_submenu( _( "Text Editing" ), text_menu );
+    }
+
+  }
+
+  private void flush_group( GLib.Menu? section_menu, ref GLib.Menu? group_menu, string name ) {
+    if( (section_menu != null) && (group_menu != null) && (group_menu.get_n_items() > 0) ) {
+      section_menu.append_submenu( name, group_menu );
+    }
+    group_menu = null;
+  }
+
+  private void flush_section( GLib.Menu menubar, GLib.Menu text_menu, GLib.Menu? section_menu, string name ) {
+    if( (section_menu != null) && (section_menu != text_menu) && (section_menu.get_n_items() > 0) ) {
+      menubar.append_submenu( name, section_menu );
+    }
+  }
+
+  //-------------------------------------------------------------
+  // Builds the macOS menu bar.  Curated menus (File, Edit, View, Help) hold the
+  // commands that behave the same in every state; the remaining commands are
+  // generated and enabled according to the current selection.
   private void setup_macos_menubar() {
+
+    _menu_commands.clear();
 
     var file_menu = new GLib.Menu();
     var file_open = new GLib.Menu();
-    append_menubar_item( file_open, KeyCommand.FILE_NEW,  _( "New" ) );
-    append_menubar_item( file_open, KeyCommand.FILE_OPEN, _( "Open…" ) );
+    append_menubar_item( file_open, KeyCommand.FILE_NEW,      _( "New" ) );
+    append_menubar_item( file_open, KeyCommand.FILE_OPEN,     _( "Open…" ) );
+    append_menubar_item( file_open, KeyCommand.FILE_OPEN_DIR, _( "Open Directory as Map…" ) );
     var file_save = new GLib.Menu();
     append_menubar_item( file_save, KeyCommand.FILE_SAVE,    _( "Save" ) );
     append_menubar_item( file_save, KeyCommand.FILE_SAVE_AS, _( "Save As…" ) );
@@ -2770,9 +2922,15 @@ public class MainWindow : Gtk.ApplicationWindow {
     var edit_undo = new GLib.Menu();
     append_menubar_item( edit_undo, KeyCommand.UNDO_ACTION, _( "Undo" ) );
     append_menubar_item( edit_undo, KeyCommand.REDO_ACTION, _( "Redo" ) );
+    var edit_clip = new GLib.Menu();
+    append_widget_action_item( edit_clip, _( "Cut" ),        "clipboard.cut",        "<Meta>x" );
+    append_widget_action_item( edit_clip, _( "Copy" ),       "clipboard.copy",       "<Meta>c" );
+    append_widget_action_item( edit_clip, _( "Paste" ),      "clipboard.paste",      "<Meta>v" );
+    append_widget_action_item( edit_clip, _( "Select All" ), "selection.select-all", "<Meta>a" );
     var edit_find = new GLib.Menu();
     append_menubar_item( edit_find, KeyCommand.SHOW_FIND, _( "Find…" ) );
     edit_menu.append_section( null, edit_undo );
+    edit_menu.append_section( null, edit_clip );
     edit_menu.append_section( null, edit_find );
 
     var view_menu = new GLib.Menu();
@@ -2795,13 +2953,60 @@ public class MainWindow : Gtk.ApplicationWindow {
     append_menubar_item( help_menu, KeyCommand.SHOW_SHORTCUTS,     _( "Shortcuts Cheatsheet" ) );
     append_menubar_item( help_menu, KeyCommand.SHOW_RELEASES,      _( "Release Notes" ) );
 
+    // The macOS Window menu is filled in by GTK
+    var window_menu = new GLib.MenuItem.submenu( _( "Window" ), new GLib.Menu() );
+    window_menu.set_attribute_value( "gtk-macos-special", new Variant.string( "window-submenu" ) );
+
     var menubar = new GLib.Menu();
     menubar.append_submenu( _( "File" ), file_menu );
     menubar.append_submenu( _( "Edit" ), edit_menu );
     menubar.append_submenu( _( "View" ), view_menu );
+    generate_command_menus( menubar, edit_menu );
+    menubar.append_item( window_menu );
     menubar.append_submenu( _( "Help" ), help_menu );
 
     application.set_menubar( menubar );
+
+    update_macos_menu_state();
+
+  }
+
+  //-------------------------------------------------------------
+  // Enables the generated menu items that are valid for the current map
+  // state, and keeps Undo/Redo in step with the current undo buffer.
+  private bool _menu_update_pending = false;
+
+  private void update_macos_menu_state() {
+
+    if( _menu_update_pending ) return;
+    _menu_update_pending = true;
+
+    Idle.add(() => {
+
+      _menu_update_pending = false;
+
+      var map = get_current_map();
+      if( map == null ) return( Source.REMOVE );
+
+      var state = MapState.get_state( map );
+      foreach( var command in _menu_commands ) {
+        var action = (_actions.lookup_action( command.to_string() ) as SimpleAction);
+        if( action != null ) {
+          // MapState.matches() treats table commands as valid in every state
+          var valid = command.for_table() ? (state == MapState.TABLE) : MapState.matches( state, command );
+          action.set_enabled( valid );
+        }
+      }
+
+      var buf = map.current_undo_buffer();
+      set_menu_item_enable( KeyCommand.UNDO_ACTION, buf.undoable() );
+      set_menu_item_enable( KeyCommand.REDO_ACTION, buf.redoable() );
+
+      map.canvas.update_native_actions( state );
+
+      return( Source.REMOVE );
+
+    });
 
   }
 #endif
