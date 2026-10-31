@@ -65,3 +65,14 @@ Dark mode via `Gtk.Settings` or libadwaita.
 - License: GPL-3.0; the fork must remain GPL-3.0 with source available.
 - To track upstream, keep the compat shim and build options upstreamable to
   limit drift.
+
+## Decisions (2026-10-31)
+
+| Topic | Decision |
+|---|---|
+| Granite | In-repo compat shim over GTK4/libadwaita; real Granite stays available on Linux via a build option. |
+| Lasem/LaTeX | Compile out first (`-Dlatex=false`); revisit once the app runs. |
+| WebKit release notes | Open in the system browser on macOS; WebKit view stays on Linux (`-Dwebkit=false`). |
+| Upstream | Upstreamable fork: small changes gated behind options, merge `upstream` regularly. |
+| Packaging | Local unsigned build first; bundling, signing and notarization deferred. |
+| First milestone | `minder-regress` passing, then the app launching from the terminal. |
