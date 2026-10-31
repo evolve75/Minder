@@ -2821,7 +2821,7 @@ public class MainWindow : Gtk.ApplicationWindow {
   }
 
 #if PRIMARY_COMMAND
-  private Gee.ArrayList<KeyCommand> _menu_commands = new Gee.ArrayList<KeyCommand>();
+  private Gee.ArrayList<LiveAction> _menu_actions = new Gee.ArrayList<LiveAction>();
   private GLib.Menu?                _sidebar_menu     = null;
 
   //-------------------------------------------------------------
@@ -2847,43 +2847,60 @@ public class MainWindow : Gtk.ApplicationWindow {
   }
 
   //-------------------------------------------------------------
-  // Registers a window action for the command without any accelerator.
-  private void add_menu_action( KeyCommand command ) {
-    if( _actions.lookup_action( command.to_string() ) != null ) return;
-    var action = new SimpleAction( command.to_string(), null );
-    action.activate.connect((v) => {
-      var func = command.get_func();
-      func( get_current_map(), false );
-    });
-    _actions.add_action( action );
+  // Returns true if the command may run right now.  This is evaluated each
+  // time a menu item or key equivalent is validated, so it always reflects the
+  // live map state.  Shortcuts without the primary modifier (plain keys) are
+  // only valid while the canvas has focus, so they never take keystrokes meant
+  // for other text fields.
+  public bool menu_command_valid( KeyCommand command, bool needs_canvas_focus ) {
+    var map = get_current_map();
+    if( map == null ) return( false );
+    if( needs_canvas_focus && (get_focus() != (Gtk.Widget)map.canvas) ) return( false );
+    var state = MapState.get_state( map );
+    return( command.for_table() ? (state == MapState.TABLE) : MapState.matches( state, command ) );
   }
 
   //-------------------------------------------------------------
-  // Appends a state-gated item for the command.  Shortcuts that include the
-  // primary modifier become key equivalents; all others (and the Markdown
-  // commands, which behave differently from the keyboard) show their shortcut
-  // in the label so plain keys keep flowing to the canvas.  Items are enabled
-  // only while the command is valid for the current map state.
-  private void mi( GLib.Menu menu, KeyCommand command, string label ) {
+  // Appends a state-gated item for the command.  Its shortcut is shown by
+  // macOS as the item's key equivalent (so it can also be remapped in System
+  // Settings).  Markdown commands use the keyboard variant of their action,
+  // which only inserts into the note when the note has focus.
+  private void mi( GLib.Menu menu, KeyCommand command, string label, string? accel_override = null ) {
+
     var shortcut = shortcuts.get_shortcut( command );
     var markdown = (KeyCommand.EDIT_MARKDOWN_START < command) && (command < KeyCommand.EDIT_MARKDOWN_END);
-    var title    = label;
-    string? accel = null;
-    if( shortcut != null ) {
-      if( shortcut.control && !markdown ) {
-        accel = shortcut.get_accelerator();
-      } else {
-        // GTK's key name for the Mac Delete key is BackSpace
-        title = "%s    [%s]".printf( label, shortcut.get_label().replace( "BackSpace", "Delete" ) );
+    var needs_focus = (shortcut != null) && !shortcut.control;
+    string action_name;
+
+    if( markdown ) {
+      if( _actions.lookup_action( command.to_string() + "_key" ) == null ) {
+        set_action_for_command( command, true );
       }
+      action_name = "win.%s_key".printf( command.to_string() );
+    } else {
+      action_name = "win.%s".printf( command.to_string() );
+      var cmd = command;
+      _actions.remove_action( command.to_string() );
+      var action = new LiveAction(
+        command.to_string(),
+        () => { return( menu_command_valid( cmd, needs_focus ) ); },
+        () => {
+          var func = cmd.get_func();
+          func( get_current_map(), false );
+        }
+      );
+      _actions.add_action( action );
+      _menu_actions.add( action );
     }
-    var item = new GLib.MenuItem( title, "win.%s".printf( command.to_string() ) );
-    if( accel != null ) {
-      item.set_attribute_value( "accel", new Variant.string( accel ) );
+
+    var item = new GLib.MenuItem( label, action_name );
+    if( accel_override != null ) {
+      item.set_attribute_value( "accel", new Variant.string( accel_override ) );
+    } else if( shortcut != null ) {
+      item.set_attribute_value( "accel", new Variant.string( shortcut.get_accelerator() ) );
     }
     menu.append_item( item );
-    add_menu_action( command );
-    _menu_commands.add( command );
+
   }
 
   // A divider-separated block within a menu
@@ -2898,6 +2915,19 @@ public class MainWindow : Gtk.ApplicationWindow {
     var m = new GLib.Menu();
     parent.append_submenu( label, m );
     return( m );
+  }
+
+  //-------------------------------------------------------------
+  // Exports the current map in the given format (File > Export As).
+  private void export_as( Export export ) {
+    var map = get_current_map();
+    if( map == null ) return;
+    map.unedit_text();
+    if( export.send_to_clipboard() ) {
+      _exporter.do_export_to_clipboard( this, export );
+    } else {
+      _exporter.do_export_to_file( this, export );
+    }
   }
 
   //-------------------------------------------------------------
@@ -2926,12 +2956,34 @@ public class MainWindow : Gtk.ApplicationWindow {
   // adding objects, Arrange for node structure, Go for navigation.
   private void setup_macos_menubar() {
 
-    _menu_commands.clear();
+    _menu_actions.clear();
 
     if( _actions.lookup_action( "toggle-sidebar" ) == null ) {
       var sidebar_action = new SimpleAction( "toggle-sidebar", null );
       sidebar_action.activate.connect((v) => { toggle_sidebar(); });
       _actions.add_action( sidebar_action );
+    }
+
+    if( _actions.lookup_action( "minimize" ) == null ) {
+      var minimize_action = new SimpleAction( "minimize", null );
+      minimize_action.activate.connect((v) => { minimize(); });
+      _actions.add_action( minimize_action );
+      var zoom_action = new SimpleAction( "zoom", null );
+      zoom_action.activate.connect((v) => {
+        if( maximized ) {
+          unmaximize();
+        } else {
+          maximize();
+        }
+      });
+      _actions.add_action( zoom_action );
+      var export_current = new SimpleAction( "export-current", null );
+      export_current.activate.connect((v) => {
+        if( get_current_map() != null ) {
+          _exporter.do_export( this );
+        }
+      });
+      _actions.add_action( export_current );
     }
 
     var menubar = new GLib.Menu();
@@ -2949,6 +3001,20 @@ public class MainWindow : Gtk.ApplicationWindow {
     append_menubar_item( s, KeyCommand.FILE_SAVE,    _( "Save" ) );
     append_menubar_item( s, KeyCommand.FILE_SAVE_AS, _( "Save As…" ) );
     s = sec( m );
+    t = sub( s, _( "Export As" ) );
+    for( int i=0; i<exports.length(); i++ ) {
+      var export = exports.index( i );
+      if( !export.exportable ) continue;
+      var action_name = "export-%s".printf( export.name );
+      _actions.remove_action( action_name );
+      var export_action = new SimpleAction( action_name, null );
+      export_action.activate.connect((v) => { export_as( export ); });
+      _actions.add_action( export_action );
+      t.append( _( "%s…" ).printf( export.label ), "win." + action_name );
+    }
+    var export_item = new GLib.MenuItem( _( "Export with Current Settings…" ), "win.export-current" );
+    export_item.set_attribute_value( "accel", new Variant.string( Utils.PRIMARY_ACCEL + "e" ) );
+    s.append_item( export_item );
     append_menubar_item( s, KeyCommand.FILE_PRINT, _( "Print…" ) );
     s = sec( m );
     append_menubar_item( s, KeyCommand.TAB_CLOSE_CURRENT, _( "Close Tab" ) );
@@ -2956,8 +3022,8 @@ public class MainWindow : Gtk.ApplicationWindow {
     // ---- Edit ----
     m = sub( menubar, _( "Edit" ) );
     s = sec( m );
-    append_menubar_item( s, KeyCommand.UNDO_ACTION, _( "Undo" ) );
-    append_menubar_item( s, KeyCommand.REDO_ACTION, _( "Redo" ) );
+    append_widget_action_item( s, _( "Undo" ), "text.undo", Utils.PRIMARY_ACCEL + "z" );
+    append_widget_action_item( s, _( "Redo" ), "text.redo", Utils.PRIMARY_ACCEL + "<Shift>z" );
     s = sec( m );
     append_widget_action_item( s, _( "Cut" ),        "clipboard.cut",        "<Meta>x" );
     append_widget_action_item( s, _( "Copy" ),       "clipboard.copy",       "<Meta>c" );
@@ -3150,9 +3216,6 @@ public class MainWindow : Gtk.ApplicationWindow {
     // ---- Go ----
     m = sub( menubar, _( "Go" ) );
     s = sec( m );
-    mi( s, KeyCommand.TAB_GOTO_NEXT, _( "Next Tab" ) );
-    mi( s, KeyCommand.TAB_GOTO_PREV, _( "Previous Tab" ) );
-    s = sec( m );
     mi( s, KeyCommand.NODE_SELECT_ROOT,     _( "Root Node" ) );
     mi( s, KeyCommand.NODE_SELECT_PARENT,   _( "Parent" ) );
     mi( s, KeyCommand.NODE_SELECT_CHILD,    _( "Child" ) );
@@ -3203,7 +3266,16 @@ public class MainWindow : Gtk.ApplicationWindow {
     mi( t, KeyCommand.TABLE_CLEAR_CELLS, _( "Clear" ) );
 
     // ---- Window (filled in by macOS) ----
-    var window_menu = new GLib.MenuItem.submenu( _( "Window" ), new GLib.Menu() );
+    var window_items = new GLib.Menu();
+    s = sec( window_items );
+    append_widget_action_item( s, _( "Minimize" ), "win.minimize", Utils.PRIMARY_ACCEL + "m" );
+    s.append( _( "Zoom" ), "win.zoom" );
+    s = sec( window_items );
+    // Command-Tab is the macOS application switcher; Control-Tab is the
+    // platform convention for switching tabs
+    mi( s, KeyCommand.TAB_GOTO_PREV, _( "Show Previous Tab" ), "<Control><Shift>Tab" );
+    mi( s, KeyCommand.TAB_GOTO_NEXT, _( "Show Next Tab" ),     "<Control>Tab" );
+    var window_menu = new GLib.MenuItem.submenu( _( "Window" ), window_items );
     window_menu.set_attribute_value( "gtk-macos-special", new Variant.string( "window-submenu" ) );
     menubar.append_item( window_menu );
 
@@ -3234,24 +3306,15 @@ public class MainWindow : Gtk.ApplicationWindow {
 
       _menu_update_pending = false;
 
-      var map = get_current_map();
-      if( map == null ) return( Source.REMOVE );
-
-      var state = MapState.get_state( map );
-      foreach( var command in _menu_commands ) {
-        var action = (_actions.lookup_action( command.to_string() ) as SimpleAction);
-        if( action != null ) {
-          // MapState.matches() treats table commands as valid in every state
-          var valid = command.for_table() ? (state == MapState.TABLE) : MapState.matches( state, command );
-          action.set_enabled( valid );
-        }
+      // Validation happens live; this tells the menus to redraw the items
+      foreach( var action in _menu_actions ) {
+        action.refresh();
       }
 
-      var buf = map.current_undo_buffer();
-      set_menu_item_enable( KeyCommand.UNDO_ACTION, buf.undoable() );
-      set_menu_item_enable( KeyCommand.REDO_ACTION, buf.redoable() );
-
-      map.canvas.update_native_actions( state );
+      var map = get_current_map();
+      if( map != null ) {
+        map.canvas.update_native_actions( MapState.get_state( map ), map.current_undo_buffer() );
+      }
 
       return( Source.REMOVE );
 
