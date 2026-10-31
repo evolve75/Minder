@@ -59,7 +59,7 @@ public class Exporter : Box {
 
     var export = new Button.with_label( _( "Export…" ) ) {
       halign         = Align.END,
-      tooltip_markup = Utils.tooltip_with_accel( _( "Export With Current Settings" ), "<Primary>e" )
+      tooltip_markup = Utils.tooltip_with_accel( _( "Export With Current Settings" ), Utils.PRIMARY_ACCEL + "e" )
     };
     export.clicked.connect(() => {
       do_export( win );

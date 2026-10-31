@@ -44,9 +44,11 @@ public class Utils {
 #if PRIMARY_COMMAND
   public const Gdk.ModifierType PRIMARY_MASK  = Gdk.ModifierType.META_MASK;
   public const string           PRIMARY_LABEL = "⌘";
+  public const string           PRIMARY_ACCEL = "<Meta>";
 #else
   public const Gdk.ModifierType PRIMARY_MASK  = Gdk.ModifierType.CONTROL_MASK;
   public const string           PRIMARY_LABEL = "Ctrl";
+  public const string           PRIMARY_ACCEL = "<Control>";
 #endif
 
 
