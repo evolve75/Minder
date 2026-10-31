@@ -40,6 +40,16 @@ public class Utils {
     return( (n->children->next == null) || (n->children->get_content().strip() != "") );
   }
 
+  // Modifier used for shortcuts: Command on macOS, Control elsewhere.
+#if PRIMARY_COMMAND
+  public const Gdk.ModifierType PRIMARY_MASK  = Gdk.ModifierType.META_MASK;
+  public const string           PRIMARY_LABEL = "⌘";
+#else
+  public const Gdk.ModifierType PRIMARY_MASK  = Gdk.ModifierType.CONTROL_MASK;
+  public const string           PRIMARY_LABEL = "Ctrl";
+#endif
+
+
   //-------------------------------------------------------------
   // Creates a private directory in the system's temporary folder.  Returns
   // null if it cannot be created.

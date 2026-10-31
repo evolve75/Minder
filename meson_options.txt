@@ -2,5 +2,7 @@ option('granite', type: 'boolean', value: true,
   description: 'Use elementary Granite. When false, an in-tree compat shim over GTK4/libadwaita is built instead.')
 option('latex', type: 'boolean', value: true,
   description: 'Render LaTeX formulas with Lasem. When false, formulas are shown as plain text.')
+option('primary-modifier', type: 'combo', choices: ['auto', 'control', 'command'], value: 'auto',
+  description: 'Modifier key used for shortcuts. auto selects Command on macOS and Control elsewhere.')
 option('webkit', type: 'combo', choices: ['auto', 'true', 'false'], value: 'auto',
   description: 'Show release notes in a WebKit view. When false, they open in the system browser. auto enables WebKit everywhere except macOS, which has no WebKitGTK.')

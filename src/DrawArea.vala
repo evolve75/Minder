@@ -2012,6 +2012,10 @@ public class DrawArea : Gtk.DrawingArea {
     switch( keyval ) {
       case Gdk.Key.Control_L :
       case Gdk.Key.Control_R :
+#if PRIMARY_COMMAND
+      case Gdk.Key.Meta_L :
+      case Gdk.Key.Meta_R :
+#endif
         _control = true;
         handle_control( true );
         break;
@@ -2021,8 +2025,10 @@ public class DrawArea : Gtk.DrawingArea {
         break;
       case Gdk.Key.Alt_L :
       case Gdk.Key.Alt_R :
+#if !PRIMARY_COMMAND
       case Gdk.Key.Meta_L :
       case Gdk.Key.Meta_R :
+#endif
         _alt = true;
         break;
     }
@@ -2047,6 +2053,10 @@ public class DrawArea : Gtk.DrawingArea {
     switch( keyval ) {
       case Gdk.Key.Control_L :
       case Gdk.Key.Control_R :
+#if PRIMARY_COMMAND
+      case Gdk.Key.Meta_L :
+      case Gdk.Key.Meta_R :
+#endif
         _control = false;
         handle_control( false );
         break;
@@ -2056,8 +2066,10 @@ public class DrawArea : Gtk.DrawingArea {
         break;
       case Gdk.Key.Alt_L :
       case Gdk.Key.Alt_R :
+#if !PRIMARY_COMMAND
       case Gdk.Key.Meta_L :
       case Gdk.Key.Meta_R :
+#endif
         _alt = false;
         break;
     }
@@ -2066,7 +2078,7 @@ public class DrawArea : Gtk.DrawingArea {
   //-------------------------------------------------------------
   // Synchronizes cached modifier keys with a pointer event.
   private void sync_modifier_keys( ModifierType state ) {
-    _control = (state & ModifierType.CONTROL_MASK) != 0;
+    _control = (state & Utils.PRIMARY_MASK) != 0;
     _shift   = (state & ModifierType.SHIFT_MASK) != 0;
     _alt     = (state & ModifierType.ALT_MASK) != 0;
   }
