@@ -194,7 +194,7 @@ public class Shortcut {
   public string get_accelerator() {
     var accel = "";
     if( _control ) {
-      accel += "<Primary>";
+      accel += Utils.PRIMARY_ACCEL;
     }
     if( _shift &&
         (!keyval_is_lower( _keycode ) ||

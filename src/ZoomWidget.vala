@@ -90,19 +90,19 @@ public class ZoomWidget : Granite.Box {
 
     _zoom_out = new Button.from_icon_name( "zoom-out-symbolic" ) {
       has_frame      = false,
-      tooltip_markup = Utils.tooltip_with_accel( _( "Zoom Out" ), "<Primary>minus" )
+      tooltip_markup = Utils.tooltip_with_accel( _( "Zoom Out" ), Utils.PRIMARY_ACCEL + "minus" )
     };
     _zoom_out.clicked.connect( zoom_out );
 
     _zoom_actual = new Button.with_label( "100%" ) {
       has_frame      = false,
-      tooltip_markup = Utils.tooltip_with_accel( _( "Zoom Actual" ), "<Primary>0" )
+      tooltip_markup = Utils.tooltip_with_accel( _( "Zoom Actual" ), Utils.PRIMARY_ACCEL + "0" )
     };
     _zoom_actual.clicked.connect( zoom_actual );
 
     _zoom_in = new Button.from_icon_name( "zoom-in-symbolic" ) {
       has_frame      = false,
-      tooltip_markup = Utils.tooltip_with_accel( _( "Zoom In" ), "<Primary>plus" )
+      tooltip_markup = Utils.tooltip_with_accel( _( "Zoom In" ), Utils.PRIMARY_ACCEL + "plus" )
     };
     _zoom_in.clicked.connect( zoom_in );
 
