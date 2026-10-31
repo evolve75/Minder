@@ -349,6 +349,10 @@ public class MainWindow : Gtk.ApplicationWindow {
     add_braindump_button();
     add_debug_button();
 
+#if PRIMARY_COMMAND
+    setup_macos_menubar();
+#endif
+
     // Create the panel so that we can resize
     _pane = new Paned( Orientation.HORIZONTAL ) {
       halign           = Align.FILL,
@@ -2046,6 +2050,14 @@ public class MainWindow : Gtk.ApplicationWindow {
   // Called whenever the undo buffer changes state.  Updates the
   // state of the undo and redo buffer buttons.
   public void do_buffer_changed( UndoBuffer buf ) {
+#if PRIMARY_COMMAND
+    // The map and its text editor have separate undo buffers; the menu follows
+    // whichever one is current rather than whichever one just changed.
+    var current_map = get_current_map();
+    var menu_buf    = (current_map != null) ? current_map.current_undo_buffer() : buf;
+    set_menu_item_enable( KeyCommand.UNDO_ACTION, menu_buf.undoable() );
+    set_menu_item_enable( KeyCommand.REDO_ACTION, menu_buf.redoable() );
+#endif
     _undo_btn.set_sensitive( buf.undoable() );
     _undo_btn.set_tooltip_markup( Utils.tooltip_with_accel( buf.undo_tooltip(), get_accelerator( KeyCommand.UNDO_ACTION ) ) );
     _redo_btn.set_sensitive( buf.redoable() );
@@ -2760,6 +2772,13 @@ public class MainWindow : Gtk.ApplicationWindow {
   // Handles any changes to shortcuts.  If a shortcut is used by
   // the main window, update the shortcut and associated tooltips.
   private void shortcut_changed( KeyCommand command, Shortcut? shortcut ) {
+#if PRIMARY_COMMAND
+    // Refresh the key equivalents shown in the macOS menu bar
+    Idle.add(() => {
+      setup_macos_menubar();
+      return( Source.REMOVE );
+    });
+#endif
     var action = _actions.lookup_action( command.to_string() );
     if( action != null ) {
       var detail_name = "win.%s".printf( command.to_string() );
@@ -2793,6 +2812,81 @@ public class MainWindow : Gtk.ApplicationWindow {
       action.set_enabled( enable );
     }
   }
+
+#if PRIMARY_COMMAND
+  //-------------------------------------------------------------
+  // Appends a menu bar item whose key equivalent mirrors the command's shortcut.
+  private void append_menubar_item( GLib.Menu menu, KeyCommand command, string label ) {
+    var item = new GLib.MenuItem( label, "win.%s".printf( command.to_string() ) );
+    var accel = get_accelerator( command );
+    if( accel != "" ) {
+      item.set_attribute_value( "accel", new Variant.string( accel ) );
+    }
+    menu.append_item( item );
+    set_action_for_command( command, false );
+  }
+
+  //-------------------------------------------------------------
+  // Builds the macOS menu bar from commands that behave the same in every
+  // map state, so that menu and keyboard activation are interchangeable.
+  // Selection-dependent commands (cut, copy, paste) are not included.
+  private void setup_macos_menubar() {
+
+    var file_menu = new GLib.Menu();
+    var file_open = new GLib.Menu();
+    append_menubar_item( file_open, KeyCommand.FILE_NEW,  _( "New" ) );
+    append_menubar_item( file_open, KeyCommand.FILE_OPEN, _( "Open…" ) );
+    var file_save = new GLib.Menu();
+    append_menubar_item( file_save, KeyCommand.FILE_SAVE,    _( "Save" ) );
+    append_menubar_item( file_save, KeyCommand.FILE_SAVE_AS, _( "Save As…" ) );
+    var file_print = new GLib.Menu();
+    append_menubar_item( file_print, KeyCommand.FILE_PRINT, _( "Print…" ) );
+    var file_close = new GLib.Menu();
+    append_menubar_item( file_close, KeyCommand.TAB_CLOSE_CURRENT, _( "Close Tab" ) );
+    file_menu.append_section( null, file_open );
+    file_menu.append_section( null, file_save );
+    file_menu.append_section( null, file_print );
+    file_menu.append_section( null, file_close );
+
+    var edit_menu = new GLib.Menu();
+    var edit_undo = new GLib.Menu();
+    append_menubar_item( edit_undo, KeyCommand.UNDO_ACTION, _( "Undo" ) );
+    append_menubar_item( edit_undo, KeyCommand.REDO_ACTION, _( "Redo" ) );
+    var edit_find = new GLib.Menu();
+    append_menubar_item( edit_find, KeyCommand.SHOW_FIND, _( "Find…" ) );
+    edit_menu.append_section( null, edit_undo );
+    edit_menu.append_section( null, edit_find );
+
+    var view_menu = new GLib.Menu();
+    var view_zoom = new GLib.Menu();
+    append_menubar_item( view_zoom, KeyCommand.ZOOM_IN,     _( "Zoom In" ) );
+    append_menubar_item( view_zoom, KeyCommand.ZOOM_OUT,    _( "Zoom Out" ) );
+    append_menubar_item( view_zoom, KeyCommand.ZOOM_FIT,    _( "Zoom to Fit" ) );
+    append_menubar_item( view_zoom, KeyCommand.ZOOM_ACTUAL, _( "Zoom to Actual Size" ) );
+    var view_sidebar = new GLib.Menu();
+    append_menubar_item( view_sidebar, KeyCommand.SHOW_CURRENT_SIDEBAR, _( "Current Sidebar" ) );
+    append_menubar_item( view_sidebar, KeyCommand.SHOW_STYLE_SIDEBAR,   _( "Style Sidebar" ) );
+    append_menubar_item( view_sidebar, KeyCommand.SHOW_TAG_SIDEBAR,     _( "Tag Sidebar" ) );
+    append_menubar_item( view_sidebar, KeyCommand.SHOW_STICKER_SIDEBAR, _( "Sticker Sidebar" ) );
+    append_menubar_item( view_sidebar, KeyCommand.SHOW_MAP_SIDEBAR,     _( "Map Sidebar" ) );
+    view_menu.append_section( null, view_zoom );
+    view_menu.append_section( null, view_sidebar );
+
+    var help_menu = new GLib.Menu();
+    append_menubar_item( help_menu, KeyCommand.SHOW_DOCUMENTATION, _( "Minder Documentation" ) );
+    append_menubar_item( help_menu, KeyCommand.SHOW_SHORTCUTS,     _( "Shortcuts Cheatsheet" ) );
+    append_menubar_item( help_menu, KeyCommand.SHOW_RELEASES,      _( "Release Notes" ) );
+
+    var menubar = new GLib.Menu();
+    menubar.append_submenu( _( "File" ), file_menu );
+    menubar.append_submenu( _( "Edit" ), edit_menu );
+    menubar.append_submenu( _( "View" ), view_menu );
+    menubar.append_submenu( _( "Help" ), help_menu );
+
+    application.set_menubar( menubar );
+
+  }
+#endif
 
   //-------------------------------------------------------------
   // Execute command.

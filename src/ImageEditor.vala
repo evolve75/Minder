@@ -549,11 +549,11 @@ public class ImageEditor {
 
     var open = new Button.from_icon_name( "folder-open-symbolic" ) {
       halign         = Align.START,
-      tooltip_markup = Utils.tooltip_with_accel( _( "Change Image" ), "<Primary>o" )
+      tooltip_markup = Utils.tooltip_with_accel( _( "Change Image" ), Utils.PRIMARY_ACCEL + "o" )
     };
     var paste = new Button.from_icon_name( "edit-paste-symbolic" ) {
       halign         = Align.START,
-      tooltip_markup = Utils.tooltip_with_accel( _( "Paste Image from Clipboard" ), "<Primary>v" )
+      tooltip_markup = Utils.tooltip_with_accel( _( "Paste Image from Clipboard" ), Utils.PRIMARY_ACCEL + "v" )
     };
     var del = new Button.from_icon_name( "edit-delete-symbolic" ) {
       halign         = Align.START,
@@ -561,12 +561,12 @@ public class ImageEditor {
     };
     var copy = new Button.from_icon_name( "edit-copy-symbolic" ) {
       halign         = Align.START,
-      tooltip_markup = Utils.tooltip_with_accel( _( "Copy Image to Clipboard" ), "<Primary>c" )
+      tooltip_markup = Utils.tooltip_with_accel( _( "Copy Image to Clipboard" ), Utils.PRIMARY_ACCEL + "c" )
     };
     var cut = new Button.from_icon_name( "edit-cut-symbolic" ) {
       halign         = Align.START,
       hexpand        = true,
-      tooltip_markup = Utils.tooltip_with_accel( _( "Cut Image to Clipboard" ), "<Primary>x" )
+      tooltip_markup = Utils.tooltip_with_accel( _( "Cut Image to Clipboard" ), Utils.PRIMARY_ACCEL + "x" )
     };
 
     var cancel = new Button.with_label( _( "Cancel" ) ) {
