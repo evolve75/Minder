@@ -27,6 +27,16 @@ public delegate void ConfirmationDialogFunc();
 
 public class Utils {
 
+  //-------------------------------------------------------------
+  // Returns true if the given XML node's first child is a text node with
+  // content.  Indentation between elements is parsed as blank text nodes
+  // and must not be mistaken for the node's text.
+  public static bool has_text_content( Xml.Node* n ) {
+    return( (n->children != null) &&
+            (n->children->type == Xml.ElementType.TEXT_NODE) &&
+            (n->children->get_content().strip() != "") );
+  }
+
   // Modifier used for shortcuts: Command on macOS, Control elsewhere.
 #if PRIMARY_COMMAND
   public const Gdk.ModifierType PRIMARY_MASK  = Gdk.ModifierType.META_MASK;

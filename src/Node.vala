@@ -1722,7 +1722,7 @@ public class Node : Object {
   //-------------------------------------------------------------
   // Loads the name value from the given XML node.
   private void load_name( Xml.Node* n ) {
-    if( (n->children != null) && (n->children->type == Xml.ElementType.TEXT_NODE) ) {
+    if( Utils.has_text_content( n ) ) {
       name.text.insert_text( 0, n->children->get_content() );
     } else {
       name.load( n );
@@ -1733,7 +1733,7 @@ public class Node : Object {
   //-------------------------------------------------------------
   // Loads the note value from the given XML node.
   private void load_note( Xml.Node* n ) {
-    if( (n->children != null) && (n->children->type == Xml.ElementType.TEXT_NODE) ) {
+    if( Utils.has_text_content( n ) ) {
       note = n->children->get_content();
     }
   }
@@ -2059,7 +2059,7 @@ public class Node : Object {
       if( it->type == Xml.ElementType.ELEMENT_NODE ) {
         switch( it->name ) {
           case "nodename" :
-            if( (it->children != null) && (it->children->type == Xml.ElementType.TEXT_NODE) ) {
+            if( Utils.has_text_content( it ) ) {
               name = it->children->get_content();
             } else {
               name = CanvasText.xml_text( it );

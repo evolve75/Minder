@@ -748,12 +748,12 @@ public class Connection : Object {
         switch( it->name ) {
           case "style" :  style.load_connection( it );  break;
           case "title" :
-           if( (it->children != null) && (it->children->type == Xml.ElementType.TEXT_NODE) ) {
+           if( Utils.has_text_content( it ) ) {
              change_title( map, it->children->get_content() );
            }
            break;
           case "note"  :
-           if( (it->children != null) && (it->children->type == Xml.ElementType.TEXT_NODE) ) {
+           if( Utils.has_text_content( it ) ) {
              note = it->children->get_content();
            }
            break;
