@@ -1970,6 +1970,10 @@ public class DrawArea : Gtk.DrawingArea {
   // Handle a key event
   private bool on_keypress( uint keyval, uint keycode, ModifierType state ) {
 
+    // The macOS input method re-sends committed text as a synthetic
+    // VoidSymbol key event; handling it again would insert the text twice.
+    if( keyval == Gdk.Key.VoidSymbol ) return( false );
+
     // If we have the mouse pressed, ignore keypresses
     if( _pressed ) return( false );
 
