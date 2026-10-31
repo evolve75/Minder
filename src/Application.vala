@@ -84,6 +84,29 @@ public class Minder : Gtk.Application {
     // Load the tab data
     appwin.load_tab_state();
 
+#if PRIMARY_COMMAND
+    // GTK's standard macOS application menu (and Cmd-Q) activates these app
+    // actions; the menu items stay disabled unless the application provides them.
+    var about_action = new SimpleAction( "about", null );
+    about_action.activate.connect(() => {
+      new About( appwin ).show();
+    });
+    add_action( about_action );
+
+    var prefs_action = new SimpleAction( "preferences", null );
+    prefs_action.activate.connect(() => {
+      new Preferences( appwin ).present();
+    });
+    add_action( prefs_action );
+
+    var quit_action = new SimpleAction( "quit", null );
+    quit_action.activate.connect(() => {
+      appwin.close_request();
+      appwin.destroy();
+    });
+    add_action( quit_action );
+#endif
+
     // Show the release notes after an upgrade, if necessary
     Idle.add(() => {
       var release_notes = new ReleaseNotes( appwin );
