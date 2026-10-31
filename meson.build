@@ -53,6 +53,14 @@ add_project_arguments([
     language: 'vala',
 )
 
+# Some platforms (e.g. Homebrew) ship librsvg without a Vala binding; fall back
+# to the minimal in-tree binding only when the system has none.
+if not meson.get_compiler('vala').find_library('librsvg-2.0', required: false).found()
+  add_project_arguments([
+      '--vapidir=' + join_paths(meson.project_source_root(), 'vapi', 'fallback')
+  ], language: 'vala')
+endif
+
 add_project_arguments(['-w'], language: 'c')
 
 dependencies = [
@@ -60,19 +68,40 @@ dependencies = [
     dependency('glib-2.0'),
     dependency('cairo'),
     dependency('gee-0.8'),
-    dependency('granite-7'),
     dependency('gtk4'),
     dependency('libxml-2.0'),
     dependency('libarchive'),
     dependency('gtksourceview-5'),
     dependency('json-glib-1.0'),
     dependency('libwebp'),
-    dependency('webkitgtk-6.0'),
-    dependency('lasem-0.6'),
     libmarkdown,
     librsvg,
     math_dep
 ]
+
+# Optional components (see meson_options.txt)
+extra_vala_args = [
+    join_paths(meson.project_source_root(), 'vapi', 'libmarkdown.vapi'),
+    join_paths(meson.project_source_root(), 'vapi', 'libwebp.vapi'),
+]
+
+if get_option('granite')
+  dependencies += dependency('granite-7')
+else
+  dependencies += dependency('libadwaita-1', version: '>=1.2')
+  sources += files('src/compat/Granite.vala')
+endif
+
+if get_option('webkit')
+  dependencies += dependency('webkitgtk-6.0')
+  add_project_arguments(['--define=WEBKIT'], language: 'vala')
+endif
+
+if get_option('latex')
+  dependencies += dependency('lasem-0.6')
+  extra_vala_args += join_paths(meson.project_source_root(), 'vapi', 'lasem-0.6.vapi')
+  add_project_arguments(['--define=LATEX'], language: 'vala')
+endif
 
 subdir('tests')
 
@@ -98,11 +127,7 @@ e = executable('io.github.phase1geo.minder',
     config_file,
     gresource,
     dependencies: dependencies,
-    vala_args: [
-        join_paths(meson.project_source_root(), 'vapi', 'libmarkdown.vapi'),
-        join_paths(meson.project_source_root(), 'vapi', 'libwebp.vapi'),
-        join_paths(meson.project_source_root(), 'vapi', 'lasem-0.6.vapi'),
-    ],
+    vala_args: extra_vala_args,
     install : true
 )
 
