@@ -35,6 +35,26 @@ public class ExportPrint : Object {
 
     _map = map;
 
+#if PRIMARY_COMMAND
+    // GTK's macOS build has no CUPS print backend, so its dialog can only print
+    // to a file.  Render a PDF and open it in the default viewer (Preview),
+    // which can print to any installed printer.
+    try {
+      var dir  = DirUtils.make_tmp( "minder-print-XXXXXX" );
+      var name = map.doc.label.replace( "/", "-" );
+      if( name.has_suffix( ".minder" ) ) {
+        name = name.substring( 0, name.length - 7 );
+      }
+      var path = Path.build_filename( dir, name + ".pdf" );
+      if( new ExportPDF().export( path, map ) ) {
+        AppInfo.launch_default_for_uri( File.new_for_path( path ).get_uri(), null );
+      }
+    } catch( GLib.Error e ) {
+      stderr.printf( "ERROR: Unable to print: %s\n", e.message );
+    }
+    return;
+#endif
+
     var op = new PrintOperation();
 
     op.print_settings     = new PrintSettings.from_gvariant( Minder.settings.get_value( "print-settings" ) );
