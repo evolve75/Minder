@@ -79,8 +79,12 @@ dependencies = [
     math_dep
 ]
 
+# GAction with a live-computed enabled state (implemented in C: see live-action.c)
+sources += files('src/live-action.c')
+
 # Optional components (see meson_options.txt)
 extra_vala_args = [
+    join_paths(meson.project_source_root(), 'vapi', 'fallback', 'live-action.vapi'),
     join_paths(meson.project_source_root(), 'vapi', 'libmarkdown.vapi'),
     join_paths(meson.project_source_root(), 'vapi', 'libwebp.vapi'),
 ]
@@ -135,6 +139,7 @@ e = executable('io.github.phase1geo.minder',
     config_file,
     gresource,
     dependencies: dependencies,
+    include_directories: include_directories('src'),
     vala_args: extra_vala_args,
     install : true
 )

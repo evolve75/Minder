@@ -1914,6 +1914,8 @@ public class DrawArea : Gtk.DrawingArea {
   private SimpleAction _act_copy;
   private SimpleAction _act_paste;
   private SimpleAction _act_select_all;
+  private SimpleAction _act_undo;
+  private SimpleAction _act_redo;
 
   //-------------------------------------------------------------
   // Provides the standard clipboard and select-all widget actions that the
@@ -1927,6 +1929,10 @@ public class DrawArea : Gtk.DrawingArea {
     var selection = new SimpleActionGroup();
     _act_select_all = make_native_action( selection, "select-all", KeyCommand.EDIT_SELECT_ALL );
     insert_action_group( "selection", selection );
+    var text = new SimpleActionGroup();
+    _act_undo = make_native_action( text, "undo", KeyCommand.UNDO_ACTION );
+    _act_redo = make_native_action( text, "redo", KeyCommand.REDO_ACTION );
+    insert_action_group( "text", text );
   }
 
   private SimpleAction make_native_action( SimpleActionGroup group, string name, KeyCommand command ) {
@@ -1942,7 +1948,9 @@ public class DrawArea : Gtk.DrawingArea {
 
   //-------------------------------------------------------------
   // Enables the clipboard actions that are valid for the given map state.
-  public void update_native_actions( MapState state ) {
+  public void update_native_actions( MapState state, UndoBuffer buf ) {
+    _act_undo.set_enabled( buf.undoable() );
+    _act_redo.set_enabled( buf.redoable() );
     _act_cut.set_enabled(        MapState.matches( state, KeyCommand.EDIT_CUT ) );
     _act_copy.set_enabled(       MapState.matches( state, KeyCommand.EDIT_COPY ) );
     _act_paste.set_enabled(      MapState.matches( state, KeyCommand.EDIT_PASTE ) );
