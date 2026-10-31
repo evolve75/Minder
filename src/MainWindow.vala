@@ -2207,6 +2207,9 @@ public class MainWindow : Gtk.ApplicationWindow {
     _prop_btn.icon_name    = _prop_hide;
     _prop_btn.tooltip_text = _( "Hide Property Sidebar" );
     _prop_btn.active       = true;
+#if PRIMARY_COMMAND
+    update_sidebar_menu_item();
+#endif
   }
 
   //-------------------------------------------------------------
@@ -2216,6 +2219,9 @@ public class MainWindow : Gtk.ApplicationWindow {
       _prop_btn.icon_name    = _prop_hide;
       _prop_btn.tooltip_text = _( "Hide Property Sidebar" );
       _prop_btn.active       = true;
+#if PRIMARY_COMMAND
+    update_sidebar_menu_item();
+#endif
       if( tab != null ) {
         _stack.visible_child_name = tab;
       }
@@ -2287,6 +2293,9 @@ public class MainWindow : Gtk.ApplicationWindow {
     _prop_btn.icon_name    = _prop_show;
     _prop_btn.tooltip_text = _( "Show Property Sidebar" );
     _prop_btn.active       = false;
+#if PRIMARY_COMMAND
+    update_sidebar_menu_item();
+#endif
     _pane.position_set     = false;
     _pane.end_child        = null;
     get_current_map( "hide_properties" ).canvas.grab_focus();
@@ -2816,10 +2825,11 @@ public class MainWindow : Gtk.ApplicationWindow {
 
 #if PRIMARY_COMMAND
   private Gee.ArrayList<KeyCommand> _menu_commands = new Gee.ArrayList<KeyCommand>();
+  private GLib.Menu?                _sidebar_menu     = null;
 
   //-------------------------------------------------------------
-  // Appends a curated menu bar item whose key equivalent mirrors the
-  // command's shortcut.
+  // Appends a curated menu bar item (also registers the keyboard-only action
+  // and accelerator that the header buttons rely on).
   private void append_menubar_item( GLib.Menu menu, KeyCommand command, string label ) {
     var item = new GLib.MenuItem( label, "win.%s".printf( command.to_string() ) );
     var accel = get_accelerator( command );
@@ -2852,46 +2862,25 @@ public class MainWindow : Gtk.ApplicationWindow {
   }
 
   //-------------------------------------------------------------
-  // Returns true if the command is already provided elsewhere in the menu bar.
-  private bool menubar_skips( KeyCommand command ) {
-    switch( command ) {
-      case KeyCommand.SHOW_ABOUT :
-      case KeyCommand.SHOW_PREFERENCES :
-      case KeyCommand.QUIT :
-      case KeyCommand.SHOW_FIND :
-      case KeyCommand.SHOW_SHORTCUTS :
-      case KeyCommand.SHOW_DOCUMENTATION :
-      case KeyCommand.SHOW_RELEASES :
-      case KeyCommand.EDIT_COPY :
-      case KeyCommand.EDIT_CUT :
-      case KeyCommand.EDIT_PASTE :
-      case KeyCommand.EDIT_SELECT_ALL :
-      case KeyCommand.TAB_CLOSE_CURRENT :
-        return( true );
-      default :
-        return( false );
-    }
-  }
-
-  //-------------------------------------------------------------
-  // Appends a generated item for the command.  Shortcuts that include the
+  // Appends a state-gated item for the command.  Shortcuts that include the
   // primary modifier become key equivalents; all others (and the Markdown
   // commands, which behave differently from the keyboard) show their shortcut
   // in the label so plain keys keep flowing to the canvas.  Items are enabled
   // only while the command is valid for the current map state.
-  private void append_generated_item( GLib.Menu menu, KeyCommand command ) {
-    var label    = command.shortcut_label();
+  private void mi( GLib.Menu menu, KeyCommand command, string label ) {
     var shortcut = shortcuts.get_shortcut( command );
     var markdown = (KeyCommand.EDIT_MARKDOWN_START < command) && (command < KeyCommand.EDIT_MARKDOWN_END);
+    var title    = label;
     string? accel = null;
     if( shortcut != null ) {
       if( shortcut.control && !markdown ) {
         accel = shortcut.get_accelerator();
       } else {
-        label = "%s    [%s]".printf( label, shortcut.get_label() );
+        // GTK's key name for the Mac Delete key is BackSpace
+        title = "%s    [%s]".printf( label, shortcut.get_label().replace( "BackSpace", "Delete" ) );
       }
     }
-    var item = new GLib.MenuItem( label, "win.%s".printf( command.to_string() ) );
+    var item = new GLib.MenuItem( title, "win.%s".printf( command.to_string() ) );
     if( accel != null ) {
       item.set_attribute_value( "accel", new Variant.string( accel ) );
     }
@@ -2900,155 +2889,333 @@ public class MainWindow : Gtk.ApplicationWindow {
     _menu_commands.add( command );
   }
 
+  // A divider-separated block within a menu
+  private GLib.Menu sec( GLib.Menu parent ) {
+    var m = new GLib.Menu();
+    parent.append_section( null, m );
+    return( m );
+  }
+
+  // A submenu
+  private GLib.Menu sub( GLib.Menu parent, string label ) {
+    var m = new GLib.Menu();
+    parent.append_submenu( label, m );
+    return( m );
+  }
+
   //-------------------------------------------------------------
-  // Generates menus from the command registry, using the same sections and
-  // groups as the shortcuts cheatsheet.
-  private void generate_command_menus( GLib.Menu menubar, GLib.Menu edit_menu ) {
-
-    GLib.Menu? section_menu = null;
-    GLib.Menu? group_menu   = null;
-    string     section_name = "";
-    string     group_name   = "";
-    var        skipping     = false;
-    var        text_menu    = new GLib.Menu();
-
-    for( int i=0; i<KeyCommand.NUM; i++ ) {
-      var command = (KeyCommand)i;
-      if( !command.viewable() ) continue;
-      if( command.is_section_start() ) {
-        // Flush the previous section
-        flush_group( section_menu, ref group_menu, group_name );
-        flush_section( menubar, text_menu, section_menu, section_name );
-        section_menu = new GLib.Menu();
-        group_menu   = null;
-        skipping     = false;
-        switch( command ) {
-          case KeyCommand.GENERAL_START :  section_name = _( "Map" );     break;
-          case KeyCommand.EDIT_START    :  section_name = "";             break;
-          default                       :  section_name = command.shortcut_label();  break;
-        }
-        if( command == KeyCommand.EDIT_START ) {
-          section_menu = text_menu;
-        }
-      } else if( command.is_section_end() ) {
-        continue;
-      } else if( command.is_group_end() ) {
-        flush_group( section_menu, ref group_menu, group_name );
-        skipping = false;
-      } else if( command.is_group_start() ) {
-        flush_group( section_menu, ref group_menu, group_name );
-        group_name = command.shortcut_label();
-        group_menu = new GLib.Menu();
-        // Groups provided by the curated menus are skipped, with their commands
-        switch( command ) {
-          case KeyCommand.FILE_START :
-          case KeyCommand.UNDO_START :
-          case KeyCommand.ZOOM_START :
-          case KeyCommand.SIDEBAR_START :
-            group_menu = null;
-            skipping   = true;
-            break;
-          default :
-            skipping = false;
-            break;
-        }
-      } else if( (section_menu != null) && !skipping && !menubar_skips( command ) ) {
-        append_generated_item( (group_menu != null) ? group_menu : section_menu, command );
-      }
-    }
-    flush_group( section_menu, ref group_menu, group_name );
-    flush_section( menubar, text_menu, section_menu, section_name );
-
-    if( text_menu.get_n_items() > 0 ) {
-      edit_menu.append_submenu( _( "Text Editing" ), text_menu );
-    }
-
-  }
-
-  private void flush_group( GLib.Menu? section_menu, ref GLib.Menu? group_menu, string name ) {
-    if( (section_menu != null) && (group_menu != null) && (group_menu.get_n_items() > 0) ) {
-      section_menu.append_submenu( name, group_menu );
-    }
-    group_menu = null;
-  }
-
-  private void flush_section( GLib.Menu menubar, GLib.Menu text_menu, GLib.Menu? section_menu, string name ) {
-    if( (section_menu != null) && (section_menu != text_menu) && (section_menu.get_n_items() > 0) ) {
-      menubar.append_submenu( name, section_menu );
+  // Shows or hides the property sidebar from the View menu.
+  public void toggle_sidebar() {
+    if( _prop_btn.active ) {
+      hide_properties();
+    } else {
+      keep_properties();
     }
   }
 
   //-------------------------------------------------------------
-  // Builds the macOS menu bar.  Curated menus (File, Edit, View, Help) hold the
-  // commands that behave the same in every state; the remaining commands are
-  // generated and enabled according to the current selection.
+  // Keeps the Show/Hide Sidebar menu item's title in step with the sidebar.
+  private void update_sidebar_menu_item() {
+    if( _sidebar_menu == null ) return;
+    var item = new GLib.MenuItem( _prop_btn.active ? _( "Hide Sidebar" ) : _( "Show Sidebar" ), "win.toggle-sidebar" );
+    item.set_attribute_value( "accel", new Variant.string( "<Meta><Control>s" ) );
+    _sidebar_menu.remove_all();
+    _sidebar_menu.append_item( item );
+  }
+
+  //-------------------------------------------------------------
+  // Builds the macOS menu bar.  Menus follow what the user is doing rather
+  // than how the commands are stored: Format for text styling, Insert for
+  // adding objects, Arrange for node structure, Go for navigation.
   private void setup_macos_menubar() {
 
     _menu_commands.clear();
 
-    var file_menu = new GLib.Menu();
-    var file_open = new GLib.Menu();
-    append_menubar_item( file_open, KeyCommand.FILE_NEW,      _( "New" ) );
-    append_menubar_item( file_open, KeyCommand.FILE_OPEN,     _( "Open…" ) );
-    append_menubar_item( file_open, KeyCommand.FILE_OPEN_DIR, _( "Open Directory as Map…" ) );
-    var file_save = new GLib.Menu();
-    append_menubar_item( file_save, KeyCommand.FILE_SAVE,    _( "Save" ) );
-    append_menubar_item( file_save, KeyCommand.FILE_SAVE_AS, _( "Save As…" ) );
-    var file_print = new GLib.Menu();
-    append_menubar_item( file_print, KeyCommand.FILE_PRINT, _( "Print…" ) );
-    var file_close = new GLib.Menu();
-    append_menubar_item( file_close, KeyCommand.TAB_CLOSE_CURRENT, _( "Close Tab" ) );
-    file_menu.append_section( null, file_open );
-    file_menu.append_section( null, file_save );
-    file_menu.append_section( null, file_print );
-    file_menu.append_section( null, file_close );
-
-    var edit_menu = new GLib.Menu();
-    var edit_undo = new GLib.Menu();
-    append_menubar_item( edit_undo, KeyCommand.UNDO_ACTION, _( "Undo" ) );
-    append_menubar_item( edit_undo, KeyCommand.REDO_ACTION, _( "Redo" ) );
-    var edit_clip = new GLib.Menu();
-    append_widget_action_item( edit_clip, _( "Cut" ),        "clipboard.cut",        "<Meta>x" );
-    append_widget_action_item( edit_clip, _( "Copy" ),       "clipboard.copy",       "<Meta>c" );
-    append_widget_action_item( edit_clip, _( "Paste" ),      "clipboard.paste",      "<Meta>v" );
-    append_widget_action_item( edit_clip, _( "Select All" ), "selection.select-all", "<Meta>a" );
-    var edit_find = new GLib.Menu();
-    append_menubar_item( edit_find, KeyCommand.SHOW_FIND, _( "Find…" ) );
-    edit_menu.append_section( null, edit_undo );
-    edit_menu.append_section( null, edit_clip );
-    edit_menu.append_section( null, edit_find );
-
-    var view_menu = new GLib.Menu();
-    var view_zoom = new GLib.Menu();
-    append_menubar_item( view_zoom, KeyCommand.ZOOM_IN,     _( "Zoom In" ) );
-    append_menubar_item( view_zoom, KeyCommand.ZOOM_OUT,    _( "Zoom Out" ) );
-    append_menubar_item( view_zoom, KeyCommand.ZOOM_FIT,    _( "Zoom to Fit" ) );
-    append_menubar_item( view_zoom, KeyCommand.ZOOM_ACTUAL, _( "Zoom to Actual Size" ) );
-    var view_sidebar = new GLib.Menu();
-    append_menubar_item( view_sidebar, KeyCommand.SHOW_CURRENT_SIDEBAR, _( "Current Sidebar" ) );
-    append_menubar_item( view_sidebar, KeyCommand.SHOW_STYLE_SIDEBAR,   _( "Style Sidebar" ) );
-    append_menubar_item( view_sidebar, KeyCommand.SHOW_TAG_SIDEBAR,     _( "Tag Sidebar" ) );
-    append_menubar_item( view_sidebar, KeyCommand.SHOW_STICKER_SIDEBAR, _( "Sticker Sidebar" ) );
-    append_menubar_item( view_sidebar, KeyCommand.SHOW_MAP_SIDEBAR,     _( "Map Sidebar" ) );
-    view_menu.append_section( null, view_zoom );
-    view_menu.append_section( null, view_sidebar );
-
-    var help_menu = new GLib.Menu();
-    append_menubar_item( help_menu, KeyCommand.SHOW_DOCUMENTATION, _( "Minder Documentation" ) );
-    append_menubar_item( help_menu, KeyCommand.SHOW_SHORTCUTS,     _( "Shortcuts Cheatsheet" ) );
-    append_menubar_item( help_menu, KeyCommand.SHOW_RELEASES,      _( "Release Notes" ) );
-
-    // The macOS Window menu is filled in by GTK
-    var window_menu = new GLib.MenuItem.submenu( _( "Window" ), new GLib.Menu() );
-    window_menu.set_attribute_value( "gtk-macos-special", new Variant.string( "window-submenu" ) );
+    if( _actions.lookup_action( "toggle-sidebar" ) == null ) {
+      var sidebar_action = new SimpleAction( "toggle-sidebar", null );
+      sidebar_action.activate.connect((v) => { toggle_sidebar(); });
+      _actions.add_action( sidebar_action );
+    }
 
     var menubar = new GLib.Menu();
-    menubar.append_submenu( _( "File" ), file_menu );
-    menubar.append_submenu( _( "Edit" ), edit_menu );
-    menubar.append_submenu( _( "View" ), view_menu );
-    generate_command_menus( menubar, edit_menu );
+    GLib.Menu m;
+    GLib.Menu s;
+    GLib.Menu t;
+
+    // ---- File ----
+    m = sub( menubar, _( "File" ) );
+    s = sec( m );
+    append_menubar_item( s, KeyCommand.FILE_NEW,      _( "New" ) );
+    append_menubar_item( s, KeyCommand.FILE_OPEN,     _( "Open…" ) );
+    append_menubar_item( s, KeyCommand.FILE_OPEN_DIR, _( "Open Directory as Map…" ) );
+    s = sec( m );
+    append_menubar_item( s, KeyCommand.FILE_SAVE,    _( "Save" ) );
+    append_menubar_item( s, KeyCommand.FILE_SAVE_AS, _( "Save As…" ) );
+    s = sec( m );
+    append_menubar_item( s, KeyCommand.FILE_PRINT, _( "Print…" ) );
+    s = sec( m );
+    append_menubar_item( s, KeyCommand.TAB_CLOSE_CURRENT, _( "Close Tab" ) );
+
+    // ---- Edit ----
+    m = sub( menubar, _( "Edit" ) );
+    s = sec( m );
+    append_menubar_item( s, KeyCommand.UNDO_ACTION, _( "Undo" ) );
+    append_menubar_item( s, KeyCommand.REDO_ACTION, _( "Redo" ) );
+    s = sec( m );
+    append_widget_action_item( s, _( "Cut" ),        "clipboard.cut",        "<Meta>x" );
+    append_widget_action_item( s, _( "Copy" ),       "clipboard.copy",       "<Meta>c" );
+    append_widget_action_item( s, _( "Paste" ),      "clipboard.paste",      "<Meta>v" );
+    t = sub( s, _( "Paste Special" ) );
+    mi( t, KeyCommand.NODE_PASTE_NODE_LINK, _( "Paste Node Link" ) );
+    mi( t, KeyCommand.NODE_PASTE_REPLACE,   _( "Replace Node with Clipboard" ) );
+    mi( t, KeyCommand.EDIT_PASTE_LATEX,     _( "Paste Clipboard Image as LaTeX" ) );
+    append_widget_action_item( s, _( "Select All" ), "selection.select-all", "<Meta>a" );
+    s = sec( m );
+    mi( s, KeyCommand.NODE_REMOVE,       _( "Delete Node" ) );
+    mi( s, KeyCommand.NODE_REMOVE_ONLY,  _( "Delete Node but Keep Children" ) );
+    mi( s, KeyCommand.CONNECTION_REMOVE, _( "Delete Connection" ) );
+    mi( s, KeyCommand.CALLOUT_REMOVE,    _( "Delete Callout" ) );
+    mi( s, KeyCommand.GROUP_REMOVE,      _( "Delete Group" ) );
+    mi( s, KeyCommand.STICKER_REMOVE,    _( "Delete Sticker" ) );
+    mi( s, KeyCommand.REMOVE_STICKER_SELECTED, _( "Remove Sticker from Selection" ) );
+    s = sec( m );
+    append_menubar_item( s, KeyCommand.SHOW_FIND, _( "Find…" ) );
+    s = sec( m );
+    mi( s, KeyCommand.EDIT_SELECTED, _( "Edit Selected Item" ) );
+    mi( s, KeyCommand.EDIT_NOTE,     _( "Edit Note" ) );
+    mi( s, KeyCommand.SHOW_CONTEXTUAL_MENU, _( "Show Contextual Menu" ) );
+    s = sec( m );
+    t = sub( s, _( "Text" ) );
+    var t1 = sec( t );
+    mi( t1, KeyCommand.EDIT_INSERT_NEWLINE, _( "Insert Newline" ) );
+    mi( t1, KeyCommand.EDIT_INSERT_TAB,     _( "Insert Tab" ) );
+    mi( t1, KeyCommand.EDIT_INSERT_EMOJI,   _( "Insert Emoji" ) );
+    var t2 = sec( t );
+    mi( t2, KeyCommand.EDIT_REMOVE_WORD_NEXT, _( "Delete Next Word" ) );
+    mi( t2, KeyCommand.EDIT_REMOVE_WORD_PREV, _( "Delete Previous Word" ) );
+    var t3 = sec( t );
+    var cur = sub( t3, _( "Move Cursor" ) );
+    mi( cur, KeyCommand.EDIT_CURSOR_CHAR_NEXT, _( "Next Character" ) );
+    mi( cur, KeyCommand.EDIT_CURSOR_CHAR_PREV, _( "Previous Character" ) );
+    mi( cur, KeyCommand.EDIT_CURSOR_UP,        _( "Up One Line" ) );
+    mi( cur, KeyCommand.EDIT_CURSOR_DOWN,      _( "Down One Line" ) );
+    mi( cur, KeyCommand.EDIT_CURSOR_WORD_NEXT, _( "Next Word" ) );
+    mi( cur, KeyCommand.EDIT_CURSOR_WORD_PREV, _( "Previous Word" ) );
+    mi( cur, KeyCommand.EDIT_CURSOR_LINESTART, _( "Start of Line" ) );
+    mi( cur, KeyCommand.EDIT_CURSOR_LINEEND,   _( "End of Line" ) );
+    mi( cur, KeyCommand.EDIT_CURSOR_FIRST,     _( "Start of Text" ) );
+    mi( cur, KeyCommand.EDIT_CURSOR_LAST,      _( "End of Text" ) );
+    var ext = sub( t3, _( "Extend Selection" ) );
+    mi( ext, KeyCommand.EDIT_SELECT_CHAR_NEXT, _( "To Next Character" ) );
+    mi( ext, KeyCommand.EDIT_SELECT_CHAR_PREV, _( "To Previous Character" ) );
+    mi( ext, KeyCommand.EDIT_SELECT_UP,        _( "Up One Line" ) );
+    mi( ext, KeyCommand.EDIT_SELECT_DOWN,      _( "Down One Line" ) );
+    mi( ext, KeyCommand.EDIT_SELECT_WORD_NEXT, _( "To Next Word" ) );
+    mi( ext, KeyCommand.EDIT_SELECT_WORD_PREV, _( "To Previous Word" ) );
+    mi( ext, KeyCommand.EDIT_SELECT_LINESTART, _( "To Start of Line" ) );
+    mi( ext, KeyCommand.EDIT_SELECT_LINEEND,   _( "To End of Line" ) );
+    mi( ext, KeyCommand.EDIT_SELECT_START_UP,   _( "To Start of Text" ) );
+    mi( ext, KeyCommand.EDIT_SELECT_START_HOME, _( "To Start of Text (Home)" ) );
+    mi( ext, KeyCommand.EDIT_SELECT_END_DOWN,   _( "To End of Text" ) );
+    mi( ext, KeyCommand.EDIT_SELECT_END_END,    _( "To End of Text (End)" ) );
+    mi( t3, KeyCommand.EDIT_SELECT_NONE, _( "Deselect Text" ) );
+
+    // ---- Format ----
+    m = sub( menubar, _( "Format" ) );
+    s = sec( m );
+    t = sub( s, _( "Heading" ) );
+    mi( t, KeyCommand.EDIT_HEADER1, _( "Heading 1" ) );
+    mi( t, KeyCommand.EDIT_HEADER2, _( "Heading 2" ) );
+    mi( t, KeyCommand.EDIT_HEADER3, _( "Heading 3" ) );
+    mi( t, KeyCommand.EDIT_HEADER4, _( "Heading 4" ) );
+    mi( t, KeyCommand.EDIT_HEADER5, _( "Heading 5" ) );
+    mi( t, KeyCommand.EDIT_HEADER6, _( "Heading 6" ) );
+    s = sec( m );
+    mi( s, KeyCommand.EDIT_BOLD,        _( "Bold" ) );
+    mi( s, KeyCommand.EDIT_ITALICS,     _( "Italic" ) );
+    mi( s, KeyCommand.EDIT_STRIKE,      _( "Strikethrough" ) );
+    mi( s, KeyCommand.EDIT_CODE,        _( "Code" ) );
+    mi( s, KeyCommand.EDIT_HIGHLIGHT,   _( "Highlight" ) );
+    mi( s, KeyCommand.EDIT_SUPERSCRIPT, _( "Superscript" ) );
+    mi( s, KeyCommand.EDIT_SUBSCRIPT,   _( "Subscript" ) );
+    s = sec( m );
+    mi( s, KeyCommand.EDIT_LINK, _( "Markdown Link" ) );
+    t = sub( s, _( "URL Link" ) );
+    mi( t, KeyCommand.EDIT_ADD_URL,    _( "Add Link" ) );
+    mi( t, KeyCommand.EDIT_EDIT_URL,   _( "Change Link" ) );
+    mi( t, KeyCommand.EDIT_OPEN_URL,   _( "Open Link" ) );
+    mi( t, KeyCommand.EDIT_REMOVE_URL, _( "Remove Link" ) );
+
+    // ---- View ----
+    m = sub( menubar, _( "View" ) );
+    s = sec( m );
+    append_menubar_item( s, KeyCommand.ZOOM_IN,  _( "Zoom In" ) );
+    append_menubar_item( s, KeyCommand.ZOOM_OUT, _( "Zoom Out" ) );
+    append_menubar_item( s, KeyCommand.ZOOM_FIT, _( "Zoom to Fit" ) );
+    mi( s, KeyCommand.ZOOM_SELECTED, _( "Zoom to Selected Subtree" ) );
+    append_menubar_item( s, KeyCommand.ZOOM_ACTUAL, _( "Actual Size" ) );
+    s = sec( m );
+    _sidebar_menu = sec( s );
+    update_sidebar_menu_item();
+    t = sub( s, _( "Sidebar Tab" ) );
+    append_menubar_item( t, KeyCommand.SHOW_CURRENT_SIDEBAR, _( "Current Item" ) );
+    append_menubar_item( t, KeyCommand.SHOW_STYLE_SIDEBAR,   _( "Style" ) );
+    append_menubar_item( t, KeyCommand.SHOW_TAG_SIDEBAR,     _( "Tags" ) );
+    append_menubar_item( t, KeyCommand.SHOW_STICKER_SIDEBAR, _( "Stickers" ) );
+    append_menubar_item( t, KeyCommand.SHOW_MAP_SIDEBAR,     _( "Map" ) );
+    mi( s, KeyCommand.SHOW_CURRENT_INFO, _( "Show Selected Item Info" ) );
+    s = sec( m );
+    mi( s, KeyCommand.TOGGLE_CONNECTIONS, _( "Show/Hide Connections" ) );
+    mi( s, KeyCommand.TOGGLE_CALLOUTS,    _( "Show/Hide Callouts" ) );
+    mi( s, KeyCommand.TOGGLE_FOCUS_MODE,  _( "Focus Mode" ) );
+    mi( s, KeyCommand.TOGGLE_BRAINDUMP,   _( "Braindump Mode" ) );
+    s = sec( m );
+    mi( s, KeyCommand.NODE_CENTER,   _( "Center Node" ) );
+    mi( s, KeyCommand.SHOW_SELECTED, _( "Scroll to Selected Item" ) );
+
+    // ---- Node ----
+    m = sub( menubar, _( "Node" ) );
+    s = sec( m );
+    mi( s, KeyCommand.NODE_ADD_ROOT,           _( "Add Root Node" ) );
+    mi( s, KeyCommand.NODE_ADD_SIBLING_AFTER,  _( "Add Sibling After" ) );
+    mi( s, KeyCommand.NODE_ADD_SIBLING_BEFORE, _( "Add Sibling Before" ) );
+    mi( s, KeyCommand.NODE_ADD_CHILD,          _( "Add Child" ) );
+    mi( s, KeyCommand.NODE_ADD_PARENT,         _( "Add Parent" ) );
+    s = sec( m );
+    mi( s, KeyCommand.NODE_QUICK_ENTRY_INSERT,  _( "Quick Entry: Insert Nodes…" ) );
+    mi( s, KeyCommand.NODE_QUICK_ENTRY_REPLACE, _( "Quick Entry: Replace Node…" ) );
+    s = sec( m );
+    mi( s, KeyCommand.NODE_CHANGE_TASK,    _( "Change Task Status" ) );
+    mi( s, KeyCommand.NODE_TOGGLE_SEQUENCE, _( "Number Children" ) );
+    t = sub( s, _( "Priority" ) );
+    mi( t, KeyCommand.NODE_SET_PRIORITY1,  _( "Priority 1" ) );
+    mi( t, KeyCommand.NODE_SET_PRIORITY2,  _( "Priority 2" ) );
+    mi( t, KeyCommand.NODE_SET_PRIORITY3,  _( "Priority 3" ) );
+    mi( t, KeyCommand.NODE_SET_PRIORITY4,  _( "Priority 4" ) );
+    mi( t, KeyCommand.NODE_SET_PRIORITY5,  _( "Priority 5" ) );
+    mi( t, KeyCommand.NODE_CLEAR_PRIORITY, _( "Clear Priority" ) );
+    s = sec( m );
+    t = sub( s, _( "Fold" ) );
+    mi( t, KeyCommand.NODE_TOGGLE_FOLDS_SHALLOW, _( "Fold/Unfold Node" ) );
+    mi( t, KeyCommand.NODE_TOGGLE_FOLDS_DEEP,    _( "Fold/Unfold Subtree" ) );
+    mi( t, KeyCommand.FOLD_COMPLETED_TASKS,      _( "Fold Completed Tasks" ) );
+    mi( t, KeyCommand.UNFOLD_ALL_NODES,          _( "Unfold All Nodes" ) );
+    t = sub( s, _( "Link" ) );
+    mi( t, KeyCommand.NODE_CHANGE_LINK_COLOR,    _( "Change Link Color…" ) );
+    mi( t, KeyCommand.NODE_RANDOMIZE_LINK_COLOR, _( "Randomize Link Color" ) );
+    mi( t, KeyCommand.NODE_REPARENT_LINK_COLOR,  _( "Match Parent Link Color" ) );
+    mi( t, KeyCommand.NODE_TOGGLE_LINKS,         _( "Toggle Link State" ) );
+
+    // ---- Insert ----
+    m = sub( menubar, _( "Insert" ) );
+    s = sec( m );
+    mi( s, KeyCommand.NODE_CHANGE_IMAGE, _( "Image…" ) );
+    mi( s, KeyCommand.NODE_REMOVE_IMAGE, _( "Remove Image" ) );
+    mi( s, KeyCommand.NODE_CHANGE_TABLE, _( "Table…" ) );
+    s = sec( m );
+    mi( s, KeyCommand.NODE_TOGGLE_CALLOUT, _( "Callout (Add/Remove)" ) );
+    mi( s, KeyCommand.NODE_ADD_CONNECTION, _( "Connection from Node" ) );
+    mi( s, KeyCommand.NODE_ADD_GROUP,      _( "Group Around Node Tree" ) );
+    s = sec( m );
+    mi( s, KeyCommand.GROUP_CHANGE_COLOR, _( "Change Group Color…" ) );
+    mi( s, KeyCommand.GROUP_MERGE,        _( "Merge Groups" ) );
+
+    // ---- Arrange ----
+    m = sub( menubar, _( "Arrange" ) );
+    s = sec( m );
+    t = sub( s, _( "Move Node" ) );
+    mi( t, KeyCommand.NODE_SWAP_UP,    _( "Up" ) );
+    mi( t, KeyCommand.NODE_SWAP_DOWN,  _( "Down" ) );
+    mi( t, KeyCommand.NODE_SWAP_LEFT,  _( "Left" ) );
+    mi( t, KeyCommand.NODE_SWAP_RIGHT, _( "Right" ) );
+    t = sub( s, _( "Sort Children" ) );
+    mi( t, KeyCommand.NODE_SORT_ALPHABETICALLY, _( "Alphabetically" ) );
+    mi( t, KeyCommand.NODE_SORT_RANDOMLY,       _( "Randomly" ) );
+    s = sec( m );
+    mi( s, KeyCommand.NODE_DETACH, _( "Detach Node" ) );
+    mi( s, KeyCommand.NODE_ATTACH, _( "Attach Node" ) );
+    t = sub( s, _( "Change Attach Target" ) );
+    mi( t, KeyCommand.NODE_ATTACH_UP,    _( "Up" ) );
+    mi( t, KeyCommand.NODE_ATTACH_DOWN,  _( "Down" ) );
+    mi( t, KeyCommand.NODE_ATTACH_LEFT,  _( "Left" ) );
+    mi( t, KeyCommand.NODE_ATTACH_RIGHT, _( "Right" ) );
+    s = sec( m );
+    t = sub( s, _( "Align Nodes" ) );
+    mi( t, KeyCommand.NODE_ALIGN_LEFT,    _( "Left Edges" ) );
+    mi( t, KeyCommand.NODE_ALIGN_HCENTER, _( "Horizontal Centers" ) );
+    mi( t, KeyCommand.NODE_ALIGN_RIGHT,   _( "Right Edges" ) );
+    mi( t, KeyCommand.NODE_ALIGN_TOP,     _( "Top Edges" ) );
+    mi( t, KeyCommand.NODE_ALIGN_VCENTER, _( "Vertical Centers" ) );
+    mi( t, KeyCommand.NODE_ALIGN_BOTTOM,  _( "Bottom Edges" ) );
+    s = sec( m );
+    mi( s, KeyCommand.BALANCE_NODES, _( "Balance Nodes" ) );
+
+    // ---- Go ----
+    m = sub( menubar, _( "Go" ) );
+    s = sec( m );
+    mi( s, KeyCommand.TAB_GOTO_NEXT, _( "Next Tab" ) );
+    mi( s, KeyCommand.TAB_GOTO_PREV, _( "Previous Tab" ) );
+    s = sec( m );
+    mi( s, KeyCommand.NODE_SELECT_ROOT,     _( "Root Node" ) );
+    mi( s, KeyCommand.NODE_SELECT_PARENT,   _( "Parent" ) );
+    mi( s, KeyCommand.NODE_SELECT_CHILD,    _( "Child" ) );
+    mi( s, KeyCommand.NODE_SELECT_CHILDREN, _( "All Children" ) );
+    mi( s, KeyCommand.NODE_SELECT_TREE,     _( "Entire Subtree" ) );
+    s = sec( m );
+    mi( s, KeyCommand.NODE_SELECT_SIBLING_NEXT,  _( "Next Sibling" ) );
+    mi( s, KeyCommand.NODE_SELECT_SIBLING_PREV,  _( "Previous Sibling" ) );
+    mi( s, KeyCommand.NODE_SELECT_SIBLING_FIRST, _( "First Sibling" ) );
+    mi( s, KeyCommand.NODE_SELECT_SIBLING_LAST,  _( "Last Sibling" ) );
+    s = sec( m );
+    mi( s, KeyCommand.NODE_SELECT_UP,    _( "Node Above" ) );
+    mi( s, KeyCommand.NODE_SELECT_DOWN,  _( "Node Below" ) );
+    mi( s, KeyCommand.NODE_SELECT_LEFT,  _( "Node to the Left" ) );
+    mi( s, KeyCommand.NODE_SELECT_RIGHT, _( "Node to the Right" ) );
+    s = sec( m );
+    mi( s, KeyCommand.NODE_SELECT_LINKED,     _( "Linked Node" ) );
+    mi( s, KeyCommand.NODE_SELECT_CALLOUT,    _( "Node's Callout" ) );
+    mi( s, KeyCommand.NODE_SELECT_CONNECTION, _( "Node's Connection" ) );
+    s = sec( m );
+    mi( s, KeyCommand.CONNECTION_SELECT_FROM, _( "Connection Source Node" ) );
+    mi( s, KeyCommand.CONNECTION_SELECT_TO,   _( "Connection Target Node" ) );
+    mi( s, KeyCommand.CONNECTION_SELECT_NEXT, _( "Next Connection" ) );
+    mi( s, KeyCommand.CONNECTION_SELECT_PREV, _( "Previous Connection" ) );
+    s = sec( m );
+    mi( s, KeyCommand.CALLOUT_SELECT_NODE, _( "Callout's Node" ) );
+    mi( s, KeyCommand.GROUP_SELECT_MAIN,   _( "Group's Main Nodes" ) );
+    mi( s, KeyCommand.GROUP_SELECT_ALL,    _( "All Nodes in Group" ) );
+
+    // ---- Table ----
+    m = sub( menubar, _( "Table" ) );
+    s = sec( m );
+    t = sub( s, _( "Row" ) );
+    mi( t, KeyCommand.TABLE_ADD_ROW_ABOVE, _( "Add Above" ) );
+    mi( t, KeyCommand.TABLE_ADD_ROW_BELOW, _( "Add Below" ) );
+    mi( t, KeyCommand.TABLE_MOVE_ROW_UP,   _( "Move Up" ) );
+    mi( t, KeyCommand.TABLE_MOVE_ROW_DOWN, _( "Move Down" ) );
+    mi( t, KeyCommand.TABLE_DELETE_ROWS,   _( "Delete" ) );
+    t = sub( s, _( "Column" ) );
+    mi( t, KeyCommand.TABLE_ADD_COL_LEFT,   _( "Add to the Left" ) );
+    mi( t, KeyCommand.TABLE_ADD_COL_RIGHT,  _( "Add to the Right" ) );
+    mi( t, KeyCommand.TABLE_MOVE_COL_LEFT,  _( "Move Left" ) );
+    mi( t, KeyCommand.TABLE_MOVE_COL_RIGHT, _( "Move Right" ) );
+    mi( t, KeyCommand.TABLE_DELETE_COLS,    _( "Delete" ) );
+    t = sub( s, _( "Cell" ) );
+    mi( t, KeyCommand.TABLE_MERGE_CELLS, _( "Merge" ) );
+    mi( t, KeyCommand.TABLE_SPLIT_CELL,  _( "Split" ) );
+    mi( t, KeyCommand.TABLE_CLEAR_CELLS, _( "Clear" ) );
+
+    // ---- Window (filled in by macOS) ----
+    var window_menu = new GLib.MenuItem.submenu( _( "Window" ), new GLib.Menu() );
+    window_menu.set_attribute_value( "gtk-macos-special", new Variant.string( "window-submenu" ) );
     menubar.append_item( window_menu );
-    menubar.append_submenu( _( "Help" ), help_menu );
+
+    // ---- Help ----
+    m = sub( menubar, _( "Help" ) );
+    s = sec( m );
+    append_menubar_item( s, KeyCommand.SHOW_DOCUMENTATION, _( "Minder Documentation" ) );
+    append_menubar_item( s, KeyCommand.SHOW_SHORTCUTS,     _( "Shortcuts Cheatsheet" ) );
+    append_menubar_item( s, KeyCommand.SHOW_RELEASES,      _( "Release Notes" ) );
 
     application.set_menubar( menubar );
 
