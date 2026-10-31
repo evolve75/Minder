@@ -443,7 +443,7 @@ public class QuickEntry : Gtk.Window {
   // Handles any keypresses in the quick entry text field
   private bool on_keypress( uint keyval, uint keycode, ModifierType state ) {
 
-    var control = (bool)(state & ModifierType.CONTROL_MASK);
+    var control = (bool)(state & Utils.PRIMARY_MASK);
     // var shift   = (bool)(state & ModifierType.SHIFT_MASK);
     var ch      = (unichar)keyval;
 

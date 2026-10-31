@@ -702,9 +702,10 @@ public class Preferences : Granite.Dialog {
           }
           _shortcut_instructions.label = _shortcut_inst_start_str;
         } else if( (keyval != Key.Control_L) && (keyval != Key.Control_R) &&
+                   (keyval != Key.Meta_L)    && (keyval != Key.Meta_R)    &&
                    (keyval != Key.Shift_L)   && (keyval != Key.Shift_L)   &&
                    (keyval != Key.Alt_L)     && (keyval != Key.Alt_R)  && (keyval != 0) ) {
-          var control  = (bool)((state & ModifierType.CONTROL_MASK) == ModifierType.CONTROL_MASK);
+          var control  = (bool)((state & Utils.PRIMARY_MASK) == Utils.PRIMARY_MASK);
           var shift    = (bool)((state & ModifierType.SHIFT_MASK)   == ModifierType.SHIFT_MASK);
           var alt      = (bool)((state & ModifierType.ALT_MASK)     == ModifierType.ALT_MASK);
           var conflict = _win.shortcuts.shortcut_conflicts_with( keyval, control, shift, alt, command );

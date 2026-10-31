@@ -545,7 +545,7 @@ public class TableEditor {
       if( _draw_area.win.shortcuts.execute( _draw_area.mmap, keyval, keycode, state ) ) {
         return( true );
       }
-      if( ((state & ModifierType.CONTROL_MASK) != 0) &&
+      if( ((state & Utils.PRIMARY_MASK) != 0) &&
           ((state & ModifierType.SHIFT_MASK) == 0) &&
           ((keyval == Gdk.Key.z) || (keyval == Gdk.Key.Z)) ) {
         undo_edit();
