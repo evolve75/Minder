@@ -79,6 +79,9 @@ dependencies = [
     math_dep
 ]
 
+# GAction with a live-computed enabled state (implemented in C: see live-action.c)
+sources += files('src/live-action.c')
+
 # Native macOS print panel (Objective-C): the Homebrew GTK has no CUPS backend
 mac_link_args = []
 if host_machine.system() == 'darwin'
@@ -91,6 +94,7 @@ endif
 
 # Optional components (see meson_options.txt)
 extra_vala_args = [
+    join_paths(meson.project_source_root(), 'vapi', 'fallback', 'live-action.vapi'),
     join_paths(meson.project_source_root(), 'vapi', 'libmarkdown.vapi'),
     join_paths(meson.project_source_root(), 'vapi', 'libwebp.vapi'),
 ]
