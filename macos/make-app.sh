@@ -63,6 +63,9 @@ echo "==> Copying runtime data"
 cp -RL "${brew_prefix}/share/gtksourceview-5" "${res}/share/"
 mkdir -p "${res}/share/icons"
 cp -RL "${brew_prefix}/share/icons/Adwaita" "${res}/share/icons/"
+# GTK itself needs its schemas (e.g. the file chooser's) in the same directory,
+# because GSETTINGS_SCHEMA_DIR replaces the default search path.
+cp "${brew_prefix}"/share/glib-2.0/schemas/*.gschema.xml "${res}/share/glib-2.0/schemas/"
 glib-compile-schemas "${res}/share/glib-2.0/schemas"
 gtk4-update-icon-cache -q -t -f "${res}/share/icons/hicolor" || true
 
