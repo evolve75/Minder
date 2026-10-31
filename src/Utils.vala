@@ -27,6 +27,16 @@ public delegate void ConfirmationDialogFunc();
 
 public class Utils {
 
+  // Modifier used for shortcuts: Command on macOS, Control elsewhere.
+#if PRIMARY_COMMAND
+  public const Gdk.ModifierType PRIMARY_MASK  = Gdk.ModifierType.META_MASK;
+  public const string           PRIMARY_LABEL = "⌘";
+#else
+  public const Gdk.ModifierType PRIMARY_MASK  = Gdk.ModifierType.CONTROL_MASK;
+  public const string           PRIMARY_LABEL = "Ctrl";
+#endif
+
+
   //-------------------------------------------------------------
   // Determines if we are executing this within the Pantheon desktop.
   // If we are, we need to use icons in the header bar that contain

@@ -420,7 +420,7 @@ public class ImageEditor {
     var key = new EventControllerKey();
     box.add_controller( key );
     key.key_pressed.connect( (keyval, keycode, state) => {
-      var control = (bool)(state & ModifierType.CONTROL_MASK);
+      var control = (bool)(state & Utils.PRIMARY_MASK);
       if( control ) {
         switch( keyval ) {
           case 99    :  action_copy();    break;
@@ -549,11 +549,11 @@ public class ImageEditor {
 
     var open = new Button.from_icon_name( "folder-open-symbolic" ) {
       halign         = Align.START,
-      tooltip_markup = Utils.tooltip_with_accel( _( "Change Image" ), "<Control>o" )
+      tooltip_markup = Utils.tooltip_with_accel( _( "Change Image" ), "<Primary>o" )
     };
     var paste = new Button.from_icon_name( "edit-paste-symbolic" ) {
       halign         = Align.START,
-      tooltip_markup = Utils.tooltip_with_accel( _( "Paste Image from Clipboard" ), "<Control>v" )
+      tooltip_markup = Utils.tooltip_with_accel( _( "Paste Image from Clipboard" ), "<Primary>v" )
     };
     var del = new Button.from_icon_name( "edit-delete-symbolic" ) {
       halign         = Align.START,
@@ -561,12 +561,12 @@ public class ImageEditor {
     };
     var copy = new Button.from_icon_name( "edit-copy-symbolic" ) {
       halign         = Align.START,
-      tooltip_markup = Utils.tooltip_with_accel( _( "Copy Image to Clipboard" ), "<Control>c" )
+      tooltip_markup = Utils.tooltip_with_accel( _( "Copy Image to Clipboard" ), "<Primary>c" )
     };
     var cut = new Button.from_icon_name( "edit-cut-symbolic" ) {
       halign         = Align.START,
       hexpand        = true,
-      tooltip_markup = Utils.tooltip_with_accel( _( "Cut Image to Clipboard" ), "<Control>x" )
+      tooltip_markup = Utils.tooltip_with_accel( _( "Cut Image to Clipboard" ), "<Primary>x" )
     };
 
     var cancel = new Button.with_label( _( "Cancel" ) ) {

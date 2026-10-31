@@ -92,6 +92,14 @@ else
   sources += files('src/compat/Granite.vala')
 endif
 
+primary_modifier = get_option('primary-modifier')
+if primary_modifier == 'auto'
+  primary_modifier = (host_machine.system() == 'darwin') ? 'command' : 'control'
+endif
+if primary_modifier == 'command'
+  add_project_arguments(['--define=PRIMARY_COMMAND'], language: 'vala')
+endif
+
 if get_option('webkit')
   dependencies += dependency('webkitgtk-6.0')
   add_project_arguments(['--define=WEBKIT'], language: 'vala')

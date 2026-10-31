@@ -194,7 +194,7 @@ public class Shortcut {
   public string get_accelerator() {
     var accel = "";
     if( _control ) {
-      accel += "<Control>";
+      accel += "<Primary>";
     }
     if( _shift &&
         (!keyval_is_lower( _keycode ) ||
@@ -220,7 +220,7 @@ public class Shortcut {
     string[] lbl = {};
     unichar  uc  = keyval_to_unicode( _keycode );
     if( _control ) {
-      lbl += "Ctrl";
+      lbl += Utils.PRIMARY_LABEL;
     }
     if( _shift ) {
       lbl += "Shift";
@@ -394,7 +394,7 @@ public class Shortcuts {
     KeymapKey[] ks      = {};
     uint[]      kvs     = {};
     var         state   = MapState.get_state( map );
-    var         control = (mods & ModifierType.CONTROL_MASK) == ModifierType.CONTROL_MASK;
+    var         control = (mods & Utils.PRIMARY_MASK) == Utils.PRIMARY_MASK;
     var         shift   = (mods & ModifierType.SHIFT_MASK)   == ModifierType.SHIFT_MASK;
     var         alt     = (mods & ModifierType.ALT_MASK)     == ModifierType.ALT_MASK;
 
@@ -564,6 +564,10 @@ public class Shortcuts {
     add_shortcut( Key.Page_Down, false, false, false, KeyCommand.NODE_SELECT_SIBLING_NEXT );
     add_shortcut( Key.Control_L, false, false, false, KeyCommand.CONTROL_PRESSED );
     add_shortcut( Key.Control_R, false, false, false, KeyCommand.CONTROL_PRESSED );
+#if PRIMARY_COMMAND
+    add_shortcut( Key.Meta_L, false, false, false, KeyCommand.CONTROL_PRESSED );
+    add_shortcut( Key.Meta_R, false, false, false, KeyCommand.CONTROL_PRESSED );
+#endif
 
   }
 
