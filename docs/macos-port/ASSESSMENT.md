@@ -44,7 +44,9 @@ Dark mode via `Gtk.Settings` or libadwaita.
 4. Printing/PDF export (`ExportPrint`, `ExportPDF`): GTK macOS print backend
    is the least mature area.
 5. Graceful already: `get_flatpak_runtime`, `XDG_CURRENT_DESKTOP`. Data dirs
-   map to `~/Library/Application Support`; check migration.
+   resolve via GLib's XDG paths on macOS too (`~/.local/share`, `~/.config`;
+   verified), so no migration is needed. Revisit for the `.app` bundle, which
+   must put its `share/` directory on `XDG_DATA_DIRS`.
 6. Tests: run `minder-regress` first to validate the toolchain.
 
 ## Suggested order
