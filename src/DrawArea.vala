@@ -364,6 +364,10 @@ public class DrawArea : Gtk.DrawingArea {
     add_css_class( "canvas" );
 
     // Make sure that we us the ImContextSimple input method
+#if PRIMARY_COMMAND
+    setup_native_actions();
+#endif
+
     _im_context = new IMMulticontext();
     _im_context.set_client_widget( this );
     _im_context.set_use_preedit( false );
@@ -1936,6 +1940,47 @@ public class DrawArea : Gtk.DrawingArea {
       queue_draw();
     });
   }
+
+#if PRIMARY_COMMAND
+  private SimpleAction _act_cut;
+  private SimpleAction _act_copy;
+  private SimpleAction _act_paste;
+  private SimpleAction _act_select_all;
+
+  //-------------------------------------------------------------
+  // Provides the standard clipboard and select-all widget actions that the
+  // macOS Edit menu activates on the focused widget.
+  private void setup_native_actions() {
+    var clipboard = new SimpleActionGroup();
+    _act_cut        = make_native_action( clipboard, "cut",        KeyCommand.EDIT_CUT );
+    _act_copy       = make_native_action( clipboard, "copy",       KeyCommand.EDIT_COPY );
+    _act_paste      = make_native_action( clipboard, "paste",      KeyCommand.EDIT_PASTE );
+    insert_action_group( "clipboard", clipboard );
+    var selection = new SimpleActionGroup();
+    _act_select_all = make_native_action( selection, "select-all", KeyCommand.EDIT_SELECT_ALL );
+    insert_action_group( "selection", selection );
+  }
+
+  private SimpleAction make_native_action( SimpleActionGroup group, string name, KeyCommand command ) {
+    var action = new SimpleAction( name, null );
+    action.set_enabled( false );
+    action.activate.connect((v) => {
+      var func = command.get_func();
+      func( _map, false );
+    });
+    group.add_action( action );
+    return( action );
+  }
+
+  //-------------------------------------------------------------
+  // Enables the clipboard actions that are valid for the given map state.
+  public void update_native_actions( MapState state ) {
+    _act_cut.set_enabled(        MapState.matches( state, KeyCommand.EDIT_CUT ) );
+    _act_copy.set_enabled(       MapState.matches( state, KeyCommand.EDIT_COPY ) );
+    _act_paste.set_enabled(      MapState.matches( state, KeyCommand.EDIT_PASTE ) );
+    _act_select_all.set_enabled( MapState.matches( state, KeyCommand.EDIT_SELECT_ALL ) );
+  }
+#endif
 
   //-------------------------------------------------------------
   // Handle input method.
