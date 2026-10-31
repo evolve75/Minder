@@ -2039,8 +2039,14 @@ public class DrawArea : Gtk.DrawingArea {
 
     // If anyone is being edited, just insert the key value
     } else if( _map.is_node_editable() || _map.is_connection_editable() || _map.is_callout_editable() ) {
+#if PRIMARY_COMMAND
+      // Report the key as handled when the input method consumed it; otherwise
+      // GDK on macOS feeds it to the input method again and it is inserted twice.
+      return( _im_context.filter_keypress( _key_controller.get_current_event() ) );
+#else
       _im_context.filter_keypress( _key_controller.get_current_event() );
       return( false );
+#endif
     }
 
     return( true );
