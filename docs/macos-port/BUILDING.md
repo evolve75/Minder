@@ -66,7 +66,6 @@ builds keep upstream behaviour.
   the build script installs the MathML/SVG headers itself, and stubs the gtk-doc and
   introspection autoconf macros.
 - GTK4 draws its own window chrome and dialogs. The menu bar, file chooser and print panel are native.
-- Drag and drop has not been verified (issue #13).
 - The bundle is signed ad hoc only; Developer ID signing and notarization need an Apple
   Developer account (issue #20).
 
