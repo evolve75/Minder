@@ -59,6 +59,7 @@ sources += files(
     'NodesMenu.vala',
     'NoteView.vala',
     'Partitioner.vala',
+    'PanedGeometry.vala',
     'PixbufPainter.vala',
     'Preferences.vala',
     'QuickEntry.vala',
