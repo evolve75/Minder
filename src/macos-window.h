@@ -51,6 +51,10 @@ void minder_macos_register_bundled_fonts (void);
 void minder_macos_note_recent_document (const char *path);
 void minder_macos_clear_recent_documents (void);
 
+/* Makes the titlebar as tall as the header bar and centres the traffic lights
+ * in it. */
+void minder_macos_window_set_titlebar_height (GtkWindow *window, int height);
+
 /* Shows the window's native "edited" marker (the dot in the close button). */
 void minder_macos_window_set_edited (GtkWindow *window, gboolean edited);
 
