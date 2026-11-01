@@ -44,6 +44,7 @@ static NSPrintInfo *shared_print_info (void)
 /* Retains the document until the sheet closes */
 @interface MinderPrintDelegate : NSObject
 @property (strong) PDFDocument *document;
+@property (copy)   NSString    *path;
 @end
 
 static NSMutableSet *live_delegates = nil;
@@ -52,6 +53,12 @@ static NSMutableSet *live_delegates = nil;
 - (void) printOperationDidRun: (NSPrintOperation *) op success: (BOOL) success contextInfo: (void *) info
 {
   (void) op; (void) success; (void) info;
+
+  /* The PDF was only made to be printed; remove its private temporary folder */
+  NSString *dir = [self.path stringByDeletingLastPathComponent];
+  if ([[dir lastPathComponent] hasPrefix: @"minder-print-"])
+    [[NSFileManager defaultManager] removeItemAtPath: dir error: nil];
+
   [live_delegates removeObject: self];
 }
 @end
@@ -105,6 +112,7 @@ minder_macos_print_pdf (GtkWindow *parent, const char *pdf_path, const char *job
         live_delegates = [[NSMutableSet alloc] init];
       MinderPrintDelegate *delegate = [[MinderPrintDelegate alloc] init];
       delegate.document = doc;
+      delegate.path     = [NSString stringWithUTF8String: pdf_path];
       [live_delegates addObject: delegate];
 
       [op runOperationModalForWindow: window

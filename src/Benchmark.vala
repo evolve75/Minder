@@ -84,14 +84,19 @@ public class Benchmark {
 
   //-------------------------------------------------------------
   // Times a full save of the document (the work a recovery copy also does).
-  // The file the map was loaded from is overwritten, so use a copy.
+  // The document is pointed at a temporary file first, so the file the map was
+  // loaded from is never written.
   private static void time_save( MindMap map ) {
+    var scratch = GLib.Path.build_filename( Environment.get_tmp_dir(), "minder-bench-%d.minder".printf( (int)GLib.get_monotonic_time() ) );
+    map.doc.filename = scratch;
     var times = new double[3];
     for( int i=0; i<3; i++ ) {
       var start = GLib.get_monotonic_time();
-      map.doc.save( true );
+      map.doc.save( true, true );
       times[i] = (GLib.get_monotonic_time() - start) / 1000.0;
     }
+    FileUtils.unlink( scratch );
+    FileUtils.unlink( GLib.Path.build_filename( Environment.get_tmp_dir(), "." + GLib.Path.get_basename( scratch ) + ".bak" ) );
     stdout.printf( "BENCH save per call: %.1f ms, %.1f ms, %.1f ms\n", times[0], times[1], times[2] );
   }
 

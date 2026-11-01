@@ -26,6 +26,7 @@ namespace MinderTest {
     public PortLogicTest() {
       this.add_test( "text-content-ignores-indentation", test_text_content_indentation );
       this.add_test( "text-content-real-text", test_text_content_real );
+      this.add_test( "text-content-whitespace-only", test_text_content_whitespace_only );
       this.add_test( "sidebar-default", test_sidebar_default );
       this.add_test( "sidebar-legacy-canvas-width", test_sidebar_legacy );
       this.add_test( "sidebar-keeps-canvas-room", test_sidebar_room );
@@ -53,6 +54,12 @@ namespace MinderTest {
     private void test_text_content_real() {
       Assert.true( first_child_has_text( "<node>hello</node>" ) );
       Assert.true( first_child_has_text( "<node>  padded  <b/></node>" ) );
+    }
+
+    private void test_text_content_whitespace_only() {
+      // A node whose whole text is a space is real text, not indentation
+      Assert.true( first_child_has_text( "<name> </name>" ) );
+      Assert.true( first_child_has_text( "<name>   </name>" ) );
     }
 
     private void test_sidebar_default() {
