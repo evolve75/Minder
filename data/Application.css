@@ -27,7 +27,7 @@
 /* Tabs: make the selected one stand out and dim the others.  The accent bar is
    drawn inside the tab so that every tab keeps the same height. */
 notebook > header > tabs > tab label {
-  opacity: 0.6;
+  color: alpha(currentColor, 0.6);
 }
 
 notebook > header > tabs > tab:checked {
@@ -36,7 +36,7 @@ notebook > header > tabs > tab:checked {
 }
 
 notebook > header > tabs > tab:checked label {
-  opacity: 1;
+  color: currentColor;
   font-weight: bold;
 }
 
