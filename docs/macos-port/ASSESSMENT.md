@@ -78,3 +78,24 @@ Dark mode via `Gtk.Settings` or libadwaita.
 | Upstream | Upstreamable fork: small changes gated behind options, merge `upstream` regularly. |
 | Packaging | Local unsigned build first; bundling, signing and notarization deferred. |
 | First milestone | `minder-regress` passing, then the app launching from the terminal. |
+
+## Outcome (2026-10-31)
+
+The estimate in this report was a feasibility judgement made before any build. What happened:
+
+| Plan item | Result |
+|---|---|
+| Granite shim over GTK4/libadwaita | Done (`src/compat/Granite.vala`, option `-Dgranite=false`) |
+| WebKit release notes | Done: opens in the browser (`-Dwebkit=false`) |
+| LaTeX (Lasem) | Compiled out; building Lasem is still open (issue #17) |
+| Build baseline, tests, Brewfile | Done; `minder-regress` passes |
+| Keyboard (Cmd instead of Ctrl) | Done, with a full native menu bar |
+| Printing and PDF export | Exports verified; printing uses the native macOS print panel |
+| Packaging | Ad-hoc signed `.app` with document type and icons; notarization needs a Developer ID |
+| Data directories | No change needed (GLib uses XDG paths on macOS) |
+
+Problems that were not in the original assessment: the librsvg Vala binding is missing from
+Homebrew, `GtkMessageDialog` cannot be subclassed, the macOS input method delivered every
+keystroke twice, saved maps loaded without their text (indentation whitespace), an
+uninitialised canvas scale could be written to the saved tab state, and GTK has no CUPS print
+backend on macOS. See the Gitea issues for each.
