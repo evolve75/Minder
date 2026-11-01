@@ -144,7 +144,7 @@ public enum NodeSide {
 
 public class NodeBounds {
 
-  private MindMap _map;
+  private weak MindMap _map;
   private double  _x = 0.0;
   private double  _y = 0.0;
 
@@ -270,7 +270,7 @@ public struct NodeTaskInfo {
 public class Node : Object {
 
   // Member variables
-  private   MindMap      _map;
+  private   weak MindMap      _map;
   protected int          _id;
   private   CanvasText   _name;
   private   string       _note         = "";
@@ -390,7 +390,7 @@ public class Node : Object {
       }
     }
   }
-  public Node?    parent     { get; protected set; default = null; }
+  public weak Node? parent   { get; protected set; default = null; }
   public NodeSide side       { get; set; default = NodeSide.RIGHT; }
   public bool     folded     { get; set; default = false; }
   public bool     show_fold  { get; set; default = false; }

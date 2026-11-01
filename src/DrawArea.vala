@@ -51,7 +51,7 @@ public class DrawArea : Gtk.DrawingArea {
   private const double autopan_max_speed  = 15;
   private const uint   autopan_frame_rate = 20;
 
-  private MindMap               _map;
+  private MindMap                    _map;
   private double                _motion_x;
   private double                _motion_y;
   private double                _press_x;
@@ -109,6 +109,36 @@ public class DrawArea : Gtk.DrawingArea {
     get {
       return( _map );
     }
+  }
+
+  //-------------------------------------------------------------
+  // Called when the tab holding this canvas is closed.  The tab's page owns the
+  // canvas and the canvas owns the map (which is how the window finds a tab's
+  // map), so this is the reference that keeps a closed tab in memory.  Stop
+  // everything that could call back into the map, then drop it.
+  public void release_map() {
+    _node_menu.release();
+    _conn_menu.release();
+    _conns_menu.release();
+    _empty_menu.release();
+    _nodes_menu.release();
+    _groups_menu.release();
+    _callout_menu.release();
+    _text_menu.release();
+    animator.flush();
+    if( _autopan_id > 0 ) {
+      Source.remove( _autopan_id );
+      _autopan_id = 0;
+    }
+    if( _select_hover_id > 0 ) {
+      Source.remove( _select_hover_id );
+      _select_hover_id = 0;
+    }
+    if( (_scroll_save_id != null) && (_scroll_save_id > 0) ) {
+      Source.remove( _scroll_save_id );
+      _scroll_save_id = null;
+    }
+    _map = null;
   }
   public IMContext im_context {
     get {

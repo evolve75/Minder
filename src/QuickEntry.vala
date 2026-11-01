@@ -24,7 +24,7 @@ using Gdk;
 
 public class QuickEntry : Gtk.Window {
 
-  private MindMap          _map;
+  private weak MindMap     _map;
   private TextView         _entry;
   private Button           _apply;
   private Array<NodeHier?> _node_stack = null;
