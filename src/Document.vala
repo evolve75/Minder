@@ -570,8 +570,13 @@ public class Document : Object {
     // Save the XML file before we do everything else
     save_xml();
 
-    // Create the tar.gz archive named according the the first argument
-    write_archive( filename );
+    // Create the tar.gz archive named according the the first argument.  If it
+    // cannot be written (the folder is gone, the volume is unmounted, ...), the
+    // document stays modified so that nothing is lost and the app keeps running.
+    if( !write_archive( filename ) ) {
+      stderr.printf( "WARNING: Unable to save '%s'\n", filename );
+      return( false );
+    }
 
     // Remove the bak file if the save went well
     if( backed && !_map.settings.get_boolean( "keep-backup-after-save" ) ) {
@@ -594,12 +599,16 @@ public class Document : Object {
 
   //-------------------------------------------------------------
   // Writes the document (map file and images) as a tar.gz archive to dest.
-  private void write_archive( string dest ) {
+  // Returns false if the archive could not be written.
+  private bool write_archive( string dest ) {
 
     Archive.Write archive = new Archive.Write ();
     archive.add_filter_gzip();
     archive.set_format_pax_restricted();
-    archive.open_filename( dest );
+    if( archive.open_filename( dest ) != Archive.Result.OK ) {
+      warning( "Unable to create '%s': %s", dest, archive.error_string() );
+      return( false );
+    }
 
     // Add the Minder file to the archive
     archive_file( archive, get_map_file() );
@@ -613,8 +622,11 @@ public class Document : Object {
 
     // Close the archive
     if( archive.close() != Archive.Result.OK ) {
-      error( "Error : %s (%d)", archive.error_string(), archive.errno() );
+      warning( "Unable to write '%s': %s (%d)", dest, archive.error_string(), archive.errno() );
+      return( false );
     }
+
+    return( true );
 
   }
 
@@ -879,14 +891,28 @@ public class Document : Object {
     // Force the save to occur.  There is nobody to ask while quitting, so if the
     // file was changed by someone else, keep their version and store ours next to it.
     if( _save_needed ) {
-      if( externally_modified() ) {
+      // A file that is gone has nothing of someone else's to protect; it is simply written again
+      if( externally_modified() && (disk_stamp() != "") ) {
         var stamp = (new DateTime.now_local()).format( "%Y%m%d-%H%M%S" );
         var stem  = filename.has_suffix( ".minder" ) ? filename.substring( 0, filename.length - 7 ) : filename;
         filename  = "%s-conflict-%s.minder".printf( stem, stamp );
       }
-      save( true );
+      if( !save( true ) ) {
+        // Keep the work in the recovery copy rather than losing it
+        write_recovery();
+        stderr.printf( "WARNING: Unsaved changes were kept in '%s'\n", recovery_file() );
+        remove_temp_dir();
+        return;
+      }
     }
     remove_recovery();
+    remove_temp_dir();
+
+  }
+
+  //-------------------------------------------------------------
+  // Deletes the temporary directory that holds the unarchived files.
+  private void remove_temp_dir() {
 
     // Delete the temporary directory
     try {
