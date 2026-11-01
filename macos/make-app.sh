@@ -86,22 +86,10 @@ cp "${brew_prefix}"/share/glib-2.0/schemas/*.gschema.xml "${res}/share/glib-2.0/
 glib-compile-schemas "${res}/share/glib-2.0/schemas"
 gtk4-update-icon-cache -q -t -f "${res}/share/icons/hicolor" || true
 
-echo "==> Writing launcher and Info.plist"
-cat > "${contents}/MacOS/Minder" <<'LAUNCHER'
-#!/usr/bin/env bash
-# Launcher: point GLib/GTK at the bundled data, then run the real binary.
-set -euo pipefail
-here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-res="${here}/../Resources"
-export XDG_DATA_DIRS="${res}/share"
-export GSETTINGS_SCHEMA_DIR="${res}/share/glib-2.0/schemas"
-cache_dir="${XDG_CACHE_HOME:-${HOME}/.cache}/minder"
-mkdir -p "${cache_dir}"
-sed "s|@RES@|${res}|g" "${res}/lib/gdk-pixbuf-2.0/loaders.cache.in" > "${cache_dir}/loaders.cache"
-export GDK_PIXBUF_MODULE_FILE="${cache_dir}/loaders.cache"
-exec "${here}/io.github.phase1geo.minder" "$@"
-LAUNCHER
-chmod +x "${contents}/MacOS/Minder"
+echo "==> Building launcher and Info.plist"
+# The main executable is a small Mach-O launcher (a script would not be
+# signable/notarizable as a main executable); it points GLib/GTK at the bundle.
+cc -O2 -Wall -o "${contents}/MacOS/Minder" "${repo}/macos/launcher.c"
 
 # Build the application and document icons.  rsvg will not load images from
 # outside an SVG's own directory, so inline the shared bubble artwork first.
@@ -175,5 +163,34 @@ cat > "${contents}/Info.plist" <<PLIST
 </dict>
 </plist>
 PLIST
+
+# Sign from the inside out: every library and loader, the binaries, then the
+# bundle.  Ad-hoc by default; set MINDER_SIGN_IDENTITY to a "Developer ID
+# Application: ..." identity to sign for distribution (hardened runtime and a
+# secure timestamp are then enabled, as notarization requires).
+identity="${MINDER_SIGN_IDENTITY:--}"
+sign_args=(--force --sign "${identity}")
+# MINDER_HARDENED_RUNTIME=1 enables the hardened runtime even for ad-hoc signing,
+# to test that the bundle still loads its libraries under it.
+if [[ "${identity}" != "-" || "${MINDER_HARDENED_RUNTIME:-0}" == "1" ]]; then
+  sign_args+=(--options runtime)
+  if [[ "${identity}" == Developer\ ID* ]]; then
+    sign_args+=(--timestamp)
+  else
+    sign_args+=(--timestamp=none)
+  fi
+fi
+
+if [[ -n "${MINDER_ENTITLEMENTS:-}" ]]; then
+  sign_args+=(--entitlements "${MINDER_ENTITLEMENTS}")
+fi
+
+echo "==> Signing (identity: ${identity})"
+find "${contents}" \( -name '*.dylib' -o -name '*.so' \) -type f \
+  -exec codesign "${sign_args[@]}" {} \; 2>/dev/null
+codesign "${sign_args[@]}" "${contents}/MacOS/${app_id}" 2>/dev/null
+codesign "${sign_args[@]}" "${contents}/MacOS/Minder" 2>/dev/null
+codesign "${sign_args[@]}" "${app}" 2>/dev/null
+codesign --verify --deep --strict "${app}"
 
 echo "==> Done: ${app}"
