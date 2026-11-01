@@ -85,6 +85,10 @@ extra_vala_args = [
     join_paths(meson.project_source_root(), 'vapi', 'libwebp.vapi'),
 ]
 
+if libmarkdown.version().version_compare('>=3.0')
+  extra_vala_args += join_paths(meson.project_source_root(), 'vapi', 'libmarkdown3.vapi')
+endif
+
 if get_option('granite')
   dependencies += dependency('granite-7')
 else
