@@ -29,7 +29,7 @@ and `GDK_PIXBUF_MODULE_FILE` at the bundle. It is not signed or notarized.
 | Option | Default | Effect when false |
 |---|---|---|
 | `granite` | true | Build the in-tree compat shim (`src/compat/Granite.vala`) over GTK4/libadwaita. |
-| `latex` | true | Formulas are shown as plain text (no Lasem). |
+| `latex` | true | Formulas are shown as plain text when false (no Lasem). `macos/make-app.sh` turns it on when `lasem-0.6` is found. |
 | `webkit` | true | Release notes open in the system browser. |
 | `primary-modifier` | auto | `auto` = Command on macOS, Control elsewhere. |
 
@@ -52,7 +52,15 @@ builds keep upstream behaviour.
 
 ## Known limitations
 
-- LaTeX rendering is unavailable (Lasem is not packaged for macOS; see issue #17).
+- LaTeX formulas need Lasem, which is not in Homebrew. Run `macos/build-lasem.sh` once (it builds a
+  pinned commit into `build-deps/`, which is git-ignored), then `source macos/env.sh` and
+  `macos/make-app.sh`; the bundle then includes the library and `-Dlatex=true` is used
+  automatically. Fractions, scripts and most layout render. Square roots, big operators
+  (sum, integral) and stretched brackets draw with TeX's `cmex10`/`cmsy10` fonts, which macOS
+  does not have, so those glyphs show wrong until the fonts question in issue #17 is settled.
+- Lasem's upstream has had no commits since 2020; its Makefile installs only the DOM headers, so
+  the build script installs the MathML/SVG headers itself, and stubs the gtk-doc and
+  introspection autoconf macros.
 - GTK4 draws its own window chrome and dialogs. The menu bar, file chooser and print panel are native.
 - Drag and drop has not been verified (issue #13).
 - The bundle is signed ad hoc only; Developer ID signing and notarization need an Apple

@@ -43,8 +43,14 @@ source "${repo}/macos/env.sh"
 
 echo "==> Building ${app_id} ${version}"
 rm -rf "${build}" "${stage}" "${app}"
+# LaTeX formulas need Lasem (macos/build-lasem.sh); without it they show as text
+latex=false
+if pkg-config --exists lasem-0.6; then
+  latex=true
+fi
+echo "    LaTeX rendering: ${latex}"
 meson setup "${build}" "${repo}" --prefix=/usr/local --buildtype=release \
-  -Dgranite=false -Dlatex=false -Dwebkit=false >/dev/null
+  -Dgranite=false -Dlatex="${latex}" -Dwebkit=false >/dev/null
 meson compile -C "${build}" >/dev/null
 DESTDIR="${stage}" meson install -C "${build}" >/dev/null
 

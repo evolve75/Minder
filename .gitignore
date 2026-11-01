@@ -11,3 +11,4 @@ src/layouts/*.c
 src/undo_actions/*.c
 .DS_Store
 !src/live-action.c
+build-deps/
