@@ -60,10 +60,10 @@ public class DrawArea : Gtk.DrawingArea {
   private double                _scaled_y;
   private double                _origin_x;
   private double                _origin_y;
-  private double                _scale_factor;
+  private double                _scale_factor       = 1.0;  // drawn before a map sets it
   private double                _store_origin_x;
   private double                _store_origin_y;
-  private double                _store_scale_factor;
+  private double                _store_scale_factor = 1.0;
   private bool                  _control         = false;
   private bool                  _shift           = false;
   private bool                  _alt             = false;
@@ -153,7 +153,9 @@ public class DrawArea : Gtk.DrawingArea {
   }
   public double sfactor {
     set {
-      _store_scale_factor = _scale_factor = value;
+      // A scale of 0 (written to the saved tab state by earlier versions) makes
+      // the canvas draw nothing and puts cairo into an error state
+      _store_scale_factor = _scale_factor = (value > 0) ? value : 1.0;
     }
     get {
       return( _scale_factor );
