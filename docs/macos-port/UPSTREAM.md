@@ -3,6 +3,20 @@
 Remotes: `upstream` = https://github.com/phase1geo/Minder (read-only), `acv` = the internal
 Gitea fork. Base branch is `master`, which currently equals upstream `master`.
 
+## Branches
+
+Only three branches are kept, here and on `acv`:
+
+- `master` equals upstream `master`. Nothing is merged into it.
+- `features/macos-integration` has all the macOS work in chronological order.
+- `features/macos-series` has the same final tree as a clean series of one-concern commits on
+  top of `master` (see "Producing patches").
+
+New work is done on a short-lived `features/<topic>` branch, fast-forwarded into
+`features/macos-integration`, cherry-picked onto `features/macos-series`, and the topic branch is
+then deleted. Issue numbers stay in the commit subjects, so `git log --grep '#67'` finds the
+commit for an issue.
+
 ## Pulling upstream changes
 
 ```sh
@@ -13,8 +27,8 @@ git switch master && git merge --ff-only upstream/master   # when master has no 
 git push acv master
 ```
 
-Then merge `master` into the active `features/*` branch (or rebase it) and rebuild with
-`macos/make-app.sh`. Conflicts are most likely in `src/MainWindow.vala` and
+Then merge `master` into `features/macos-integration`, rebase `features/macos-series` onto it,
+and rebuild with `macos/make-app.sh`. Conflicts are most likely in `src/MainWindow.vala` and
 `src/Application.vala`, where the macOS menu bar and open handling live behind
 `#if PRIMARY_COMMAND`. Keep that guard so Linux builds stay byte-for-byte upstream behaviour.
 
