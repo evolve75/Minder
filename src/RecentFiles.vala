@@ -17,6 +17,8 @@
  * Boston, MA 02110-1301 USA
  *
  * Authored by: Anupam Sengupta <anupamsg@gmail.com>
+ */
+
 /*
  * The list of recently used documents, kept free of widgets and settings so it
  * can be tested.  The most recent file comes first.
