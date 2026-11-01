@@ -365,9 +365,11 @@ public class MainWindow : Gtk.ApplicationWindow {
       return( false );
     });
 
+#if !PRIMARY_COMMAND
     _pane.notify["position"].connect(() => {
       _settings.set_int( "properties-width", _pane.position );
     });
+#endif
 
     // Display the UI
     child = _pane;
@@ -469,6 +471,9 @@ public class MainWindow : Gtk.ApplicationWindow {
     @lock.visible    = !editable;
     lbl.label        = label;
     lbl.tooltip_text = tooltip;
+#if PRIMARY_COMMAND
+    update_tab_menu();
+#endif
   }
 
   //-------------------------------------------------------------
@@ -541,6 +546,9 @@ public class MainWindow : Gtk.ApplicationWindow {
   //-------------------------------------------------------------
   // This needs to be called whenever the tab is changed
   private void tab_changed( int page_num ) {
+#if PRIMARY_COMMAND
+    update_tab_menu();
+#endif
     var map = get_map( page_num );
     do_buffer_changed( map.current_undo_buffer() );
     on_current_changed( map );
@@ -555,6 +563,9 @@ public class MainWindow : Gtk.ApplicationWindow {
   //-------------------------------------------------------------
   // Called whenever the current tab is moved to a new position
   private void tab_reordered( Widget w, uint page_num ) {
+#if PRIMARY_COMMAND
+    update_tab_menu();
+#endif
     save_tab_state( (int)page_num );
   }
 
@@ -598,6 +609,9 @@ public class MainWindow : Gtk.ApplicationWindow {
   //-------------------------------------------------------------
   // This should be called when the tab page is actually gone
   private void tab_removed( Widget w, uint page_num ) {
+#if PRIMARY_COMMAND
+    update_tab_menu();
+#endif
     save_tab_state( _nb.page );
   }
 
@@ -684,6 +698,9 @@ public class MainWindow : Gtk.ApplicationWindow {
 
     // Add the tab
     var tab_index = _nb.append_page( overlay, tab_box );
+#if PRIMARY_COMMAND
+    update_tab_menu();
+#endif
 
     tab_motion.enter.connect((x, y) => {
       tab_revealer.reveal_child = true; // (_nb.get_n_pages() > 1);
@@ -2107,7 +2124,11 @@ public class MainWindow : Gtk.ApplicationWindow {
     if( !_inspector_nb.get_mapped() ) {
       _prop_btn.tooltip_text = _( "Keep Property Sidebar Shown" );
       _pane.end_child = _inspector_nb;
+#if PRIMARY_COMMAND
+      set_sidebar_position();
+#else
       _pane.position  = _settings.get_int( "properties-width" );
+#endif
       var map = get_current_map();
       if( map != null ) {
         map.canvas.see( false, true, -300 );
@@ -2142,7 +2163,11 @@ public class MainWindow : Gtk.ApplicationWindow {
       }
       if( !_inspector_nb.get_mapped() ) {
         _pane.end_child = _inspector_nb;
+#if PRIMARY_COMMAND
+        set_sidebar_position();
+#else
         _pane.position  = _settings.get_int( "properties-width" );
+#endif
         if( get_current_map( "show_properties 1" ) != null ) {
           get_current_map( "show_properties 2" ).canvas.see( false, true, -300 );
         }
@@ -2253,6 +2278,15 @@ public class MainWindow : Gtk.ApplicationWindow {
   private void save_window_size() {
     Minder.settings.set_int( "window-w", get_width() );
     Minder.settings.set_int( "window-h", get_height() );
+#if PRIMARY_COMMAND
+    // The paned position is the canvas width; keep the sidebar's own width
+    if( (_pane.end_child != null) && (_pane.get_width() > 0) ) {
+      var width = _pane.get_width() - _pane.position;
+      if( (width >= 250) && (width <= 600) ) {
+        Minder.settings.set_int( "properties-width", width );
+      }
+    }
+#endif
   }
 
   //-------------------------------------------------------------
@@ -3166,6 +3200,8 @@ public class MainWindow : Gtk.ApplicationWindow {
     // ---- Table ----
     m = sub( menubar, _( "Table" ) );
     s = sec( m );
+    mi( s, KeyCommand.NODE_CHANGE_TABLE, _( "Add or Edit Table…" ) );
+    s = sec( m );
     t = sub( s, _( "Row" ) );
     mi( t, KeyCommand.TABLE_ADD_ROW_ABOVE, _( "Add Above" ) );
     mi( t, KeyCommand.TABLE_ADD_ROW_BELOW, _( "Add Below" ) );
@@ -3193,6 +3229,14 @@ public class MainWindow : Gtk.ApplicationWindow {
     // delivered to menus; Shift-Command-[ and ] are the standard tab shortcuts
     mi( s, KeyCommand.TAB_GOTO_PREV, _( "Show Previous Tab" ), "<Meta>braceleft" );
     mi( s, KeyCommand.TAB_GOTO_NEXT, _( "Show Next Tab" ),     "<Meta>braceright" );
+    // One item per open tab, with a check mark on the current one
+    _tab_menu = sec( window_items );
+    _tab_action = new SimpleAction.stateful( "select-tab", VariantType.INT32, new Variant.int32( 0 ) );
+    _tab_action.activate.connect((param) => {
+      _nb.page = param.get_int32();
+    });
+    _actions.add_action( _tab_action );
+    update_tab_menu();
     var window_menu = new GLib.MenuItem.submenu( _( "Window" ), window_items );
     window_menu.set_attribute_value( "gtk-macos-special", new Variant.string( "window-submenu" ) );
     menubar.append_item( window_menu );
@@ -3214,6 +3258,39 @@ public class MainWindow : Gtk.ApplicationWindow {
   // Enables the generated menu items that are valid for the current map
   // state, and keeps Undo/Redo in step with the current undo buffer.
   private bool _menu_update_pending = false;
+
+  private GLib.Menu?     _tab_menu   = null;
+  private SimpleAction?  _tab_action = null;
+
+  //-------------------------------------------------------------
+  // Rebuilds the list of open tabs in the Window menu.
+  private void update_tab_menu() {
+    if( (_tab_menu == null) || (_nb == null) ) return;
+    _tab_menu.remove_all();
+    for( int i=0; i<_nb.get_n_pages(); i++ ) {
+      var item = new GLib.MenuItem( get_tab_label_name( i ), null );
+      item.set_action_and_target_value( "win.select-tab", new Variant.int32( i ) );
+      _tab_menu.append_item( item );
+    }
+    _tab_action.set_state( new Variant.int32( _nb.page ) );
+  }
+
+  //-------------------------------------------------------------
+  // Positions the divider so the sidebar gets its saved width.
+  private void set_sidebar_position() {
+    var total = _pane.get_width();
+    if( total <= 0 ) {
+      total = (get_width() > 0) ? get_width() : _settings.get_int( "window-w" );
+    }
+    // Older builds stored the canvas width in this setting, so anything
+    // outside a sane sidebar width is ignored
+    var width = _settings.get_int( "properties-width" );
+    if( (width < 250) || (width > 600) ) {
+      width = 300;
+    }
+    width = width.clamp( 250, int.max( 250, total - 300 ) );
+    _pane.position = total - width;
+  }
 
   private void update_macos_menu_state() {
 
