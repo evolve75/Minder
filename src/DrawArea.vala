@@ -2072,6 +2072,15 @@ public class DrawArea : Gtk.DrawingArea {
 #endif
     }
 
+#if PRIMARY_COMMAND
+    // GDK offers a key to the macOS menu only when GTK leaves it unhandled, so
+    // Command shortcuts that only the menu knows (Minimize, Next Tab, Show
+    // Sidebar, ...) must not be consumed here.  Plain keys are still consumed.
+    if( (state & ModifierType.META_MASK) != 0 ) {
+      return( false );
+    }
+#endif
+
     return( true );
 
   }

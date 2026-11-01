@@ -3189,10 +3189,10 @@ public class MainWindow : Gtk.ApplicationWindow {
     append_widget_action_item( s, _( "Minimize" ), "win.minimize", Utils.PRIMARY_ACCEL + "m" );
     s.append( _( "Zoom" ), "win.zoom" );
     s = sec( window_items );
-    // Command-Tab is the macOS application switcher; Control-Tab is the
-    // platform convention for switching tabs
-    mi( s, KeyCommand.TAB_GOTO_PREV, _( "Show Previous Tab" ), "<Control><Shift>Tab" );
-    mi( s, KeyCommand.TAB_GOTO_NEXT, _( "Show Next Tab" ),     "<Control>Tab" );
+    // Command-Tab is the macOS application switcher and Control-Tab is not
+    // delivered to menus; Shift-Command-[ and ] are the standard tab shortcuts
+    mi( s, KeyCommand.TAB_GOTO_PREV, _( "Show Previous Tab" ), "<Meta>braceleft" );
+    mi( s, KeyCommand.TAB_GOTO_NEXT, _( "Show Next Tab" ),     "<Meta>braceright" );
     var window_menu = new GLib.MenuItem.submenu( _( "Window" ), window_items );
     window_menu.set_attribute_value( "gtk-macos-special", new Variant.string( "window-submenu" ) );
     menubar.append_item( window_menu );
