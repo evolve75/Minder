@@ -34,11 +34,16 @@ using Cairo;
 public class Benchmark {
 
   private const int WARMUP = 2;
-  private const int FRAMES = 20;
+  private static int FRAMES = 20;   // MINDER_BENCH_FRAMES overrides, for profiling
 
   //-------------------------------------------------------------
   // Runs all scenarios on the current tab and prints the results.
   public static void run( MainWindow win ) {
+
+    var frames = Environment.get_variable( "MINDER_BENCH_FRAMES" );
+    if( frames != null ) {
+      FRAMES = int.parse( frames );
+    }
 
     var map = win.get_current_map();
     if( map == null ) {

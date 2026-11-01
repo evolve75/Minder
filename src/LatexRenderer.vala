@@ -70,11 +70,12 @@ public class LatexRenderer : Object {
   }
 
   private const int    MAX_SOURCE_LENGTH = 16384;
-  private const int    MAX_CACHE_ITEMS   = 128;
+  private const int    MAX_CACHE_ITEMS   = 512;
   private const double LASEM_BASE_SIZE   = 12.0;        // Lasem lays formulas out at 12pt
   private const double CSS_PX_PER_PT     = 96.0 / 72.0;
 
   private static HashMap<string,LatexImage>? _cache = null;
+  private static GLib.Queue<string>?              _cache_order = null;   // Keys, oldest first
 
   private Array<LatexSpan> _spans;
   private Array<int>       _escaped_dollars;
@@ -308,6 +309,23 @@ public class LatexRenderer : Object {
   }
 
   //-------------------------------------------------------------
+  // Stores a rendered formula, evicting the oldest entries when the cache is
+  // full (instead of throwing everything away, which made every formula
+  // re-render at once).
+  private static void cache_image( string key, LatexImage image ) {
+    if( _cache_order == null ) {
+      _cache_order = new GLib.Queue<string>();
+    }
+    if( !_cache.has_key( key ) ) {
+      _cache_order.push_tail( key );
+    }
+    _cache.set( key, image );
+    while( _cache.size > MAX_CACHE_ITEMS ) {
+      _cache.unset( _cache_order.pop_head() );
+    }
+  }
+
+  //-------------------------------------------------------------
   // Lays out one formula with Lasem and records it as a vector surface.
   // Returns null if the expression cannot be parsed.
   private static LatexImage? render_formula( LatexSpan span ) {
@@ -346,10 +364,7 @@ public class LatexRenderer : Object {
         baseline_pt * scale,
         (height_pt - baseline_pt) * scale
       );
-      if( _cache.size >= MAX_CACHE_ITEMS ) {
-        _cache.clear();
-      }
-      _cache.set( span.key, image );
+      cache_image( span.key, image );
       return( image );
     } catch( Error e ) {
       debug( "Unable to render LaTeX '%s': %s", span.expression, e.message );
