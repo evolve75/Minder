@@ -287,12 +287,16 @@ public class Minder : Gtk.Application {
       open_file = args[1];
     }
 
+    MindMap? imported = null;
+
     if( cl_import != null ) {
       if( args.length >= 2 ) {
         if( !appwin.import_file( open_file, cl_import, ref open_file ) ) {
           stderr.printf( _( "ERROR: Unable to import file" ) + "\n" );
           return( end_cl( cl, 1 ) );
         }
+        // Export from the imported map; the file that was imported is not a Minder file
+        imported = appwin.get_current_map();
       } else {
         stderr.printf( _( "ERROR: Import is missing filename to import" ) + "\n" );
         return( end_cl( cl, 1 ) );
@@ -307,14 +311,13 @@ public class Minder : Gtk.Application {
       cl_options.set( "quality",             quality );
       cl_options.set( "include-image-links", (int)image_links );
       if( args.length == 3 ) {
-        if( export_as( cl_export, cl_options, open_file, args[2] ) ) {
+        if( export_as( cl_export, cl_options, open_file, args[2], imported ) ) {
           stdout.printf( "Successfully exported %s!\n", args[2] );
         } else {
           retval = 1;
         }
         if( cl_import != null ) {
           appwin.close_current_tab();
-          FileUtils.unlink( open_file );  // Delete the file if we were just doing a conversion
         }
       } else {
         stderr.printf( _( "ERROR: Export is missing input file and/or export output file" ) + "\n" );
@@ -349,7 +352,7 @@ public class Minder : Gtk.Application {
 
   //-------------------------------------------------------------
   // Exports the given mindmap from the command-line.
-  private bool export_as( string format, HashMap<string,int> options, string infile, string outfile ) {
+  private bool export_as( string format, HashMap<string,int> options, string infile, string outfile, MindMap? source = null ) {
 
     var exports = appwin.exports;
 
@@ -364,8 +367,16 @@ public class Minder : Gtk.Application {
           }
           return( true );
         });
-        var map      = appwin.create_map();
         var exported = false;
+        if( source != null ) {
+          // Converting an imported file: the map is already loaded
+          exported = export.export( outfile, source );
+          if( !exported ) {
+            stderr.printf( _( "ERROR:  Unable to export to %s" ).printf( outfile ) + "\n" );
+          }
+          return( exported );
+        }
+        var map = appwin.create_map();
         map.doc.load_filename( infile, false );
         map.doc.load( UpgradeAction.READ_ONLY, (loaded) => {
           if( loaded ) {
