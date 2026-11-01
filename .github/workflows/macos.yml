@@ -1,11 +1,11 @@
 name: macOS build
 
 # Builds Minder on macOS, runs the unit tests and builds the unsigned .app
-# whenever a pull request is opened or updated, and on pushes to the macOS branches.
+# whenever a pull request is opened or updated, and on pushes to master and the macOS branches.
 on:
   pull_request:
   push:
-    branches: [features/macos-port, features/macos-integration]
+    branches: [master, features/macos-port, features/macos-integration]
   workflow_dispatch:
 
 jobs:

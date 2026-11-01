@@ -2,35 +2,34 @@
 
 Remotes: `upstream` = https://github.com/phase1geo/Minder (read-only, never pushed to),
 `origin` = the GitHub fork https://github.com/evolve75/Minder, `acv` = the internal Gitea
-repository, which stays the issue tracker. Base branch is `master`, which currently equals
-upstream `master`. Branches are pushed to `origin` and `acv`.
+repository, which stays the issue tracker. Branches are pushed to `origin` and `acv`.
 
 ## Branches
 
-Only three branches are kept, here and on `acv`:
+The fork is kept for ongoing development on macOS and Linux, and for pulling upstream changes.
 
-- `master` equals upstream `master`. Nothing is merged into it.
-- `features/macos-integration` has all the macOS work in chronological order.
-- `features/macos-port` has the same final tree as a clean series of one-concern commits on
-  top of `master` (see "Producing patches").
+- `master` is the fork's default branch: upstream plus the macOS port. Development lands here
+  through short-lived topic branches (`features/<topic>`, fast-forwarded into `master` and then
+  deleted). It is never rewritten.
+- `features/macos-port` is the same work as a clean, ordered series of one-concern commits on top
+  of `upstream/master`. It is the source of the pull requests to upstream, and is rebased onto
+  `upstream/master` when upstream moves (see "Producing patches").
+- `features/macos-integration` keeps the chronological history of the port.
 
-New work is done on a short-lived `features/<topic>` branch, fast-forwarded into
-`features/macos-integration`, cherry-picked onto `features/macos-port`, and the topic branch is
-then deleted. Issue numbers stay in the commit subjects, so `git log --grep '#67'` finds the
-commit for an issue.
+Issue numbers stay in the commit subjects, so `git log --grep '#67'` finds the commit for an issue.
 
 ## Pulling upstream changes
 
 ```sh
 git fetch upstream
-git rev-list --count master..upstream/master        # how far behind
+git rev-list --count master..upstream/master        # how far behind (0 when up to date)
 git merge-tree --write-tree master upstream/master  # trial merge; prints a tree id if clean
-git switch master && git merge --ff-only upstream/master   # when master has no local commits
-git push acv master
+git switch master && git merge upstream/master
+git push origin master && git push acv master
 ```
 
-Then merge `master` into `features/macos-integration`, rebase `features/macos-port` onto it,
-and rebuild with `macos/make-app.sh`. Conflicts are most likely in `src/MainWindow.vala` and
+Merge rather than rebase, so `master` is never rewritten. Then rebuild with
+`macos/make-app.sh`. Conflicts are most likely in `src/MainWindow.vala` and
 `src/Application.vala`, where the macOS menu bar and open handling live behind
 `#if PRIMARY_COMMAND`. Keep that guard so Linux builds stay byte-for-byte upstream behaviour.
 
@@ -53,21 +52,21 @@ it only if upstream wants macOS support.
 
 ## Producing patches
 
-`features/macos-integration` keeps the chronological history. `features/macos-port` holds the
-same final tree as a clean, ordered series of one-concern commits on top of `master`. The first
-group is not macOS specific and is meant to be proposed upstream on its own: the build options and
-shims (`granite`, `latex`, `webkit`, all defaulting to the current behaviour), then bug fixes,
-stability work (crash recovery, safe saving, freed tabs) and drawing performance. The second group is
-the macOS port: docs, the menu bar and shortcuts, window and Dock behaviour, packaging, LaTeX
-support and the macOS polish. Docs and CI come last. Every commit from the WebKit option onward
-builds with `-Dgranite=false -Dlatex=false` (the three before it need Lasem and
-WebKit installed, as on Linux).
+`features/macos-port` is a clean, ordered series of one-concern commits on top of `upstream/master`.
+The first group is not macOS specific and is meant to be proposed upstream on its own: the build
+options and shims (`granite`, `latex`, `webkit`, all defaulting to the current behaviour), then bug
+fixes, stability work (crash recovery, safe saving, freed tabs) and drawing performance. The second
+group is the macOS port: docs, the menu bar and shortcuts, window and Dock behaviour, packaging,
+LaTeX support and the macOS polish. Docs and CI come last. Every commit from the WebKit option onward
+builds with `-Dgranite=false -Dlatex=false` (the three before it need Lasem and WebKit installed, as
+on Linux).
 
 ```sh
-git diff features/macos-integration features/macos-port   # must be empty
-git format-patch -o patches/ master..features/macos-port
+git rebase upstream/master features/macos-port          # after fetching, when upstream moved
+git diff master features/macos-port                     # empty while master has no extra commits
+git format-patch -o patches/ upstream/master..features/macos-port
 ```
 
-When a macOS change lands on `features/macos-integration`, re-apply it to the series as its own
-commit (or fold it into its parent topic). Nothing is sent upstream from here; this repo only
-keeps the patches ready. Do not push to `upstream`.
+While upstream pull requests are pending, new work is added to `master` and also applied to the
+series as its own commit (or folded into its parent topic). Nothing is sent upstream from here; this
+repo only keeps the patches ready. Do not push to `upstream`.
