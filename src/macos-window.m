@@ -20,6 +20,7 @@
  */
 
 #import <Cocoa/Cocoa.h>
+#import <CoreText/CoreText.h>
 #include <gdk/macos/gdkmacos.h>
 
 #include "macos-window.h"
@@ -174,4 +175,22 @@ minder_macos_set_reopen_handler (MinderReopenFunc callback, gpointer user_data)
   IMP imp = imp_implementationWithBlock (block);
   if (!class_addMethod ([delegate class], sel, imp, "c@:@c"))
     class_replaceMethod ([delegate class], sel, imp, "c@:@c");
+}
+
+void
+minder_macos_register_bundled_fonts (void)
+{
+  @autoreleasepool
+    {
+      NSString *dir = [[[NSBundle mainBundle] resourcePath] stringByAppendingPathComponent: @"fonts"];
+      NSArray<NSString *> *files = [[NSFileManager defaultManager] contentsOfDirectoryAtPath: dir error: nil];
+      for (NSString *file in files)
+        {
+          NSString *ext = [[file pathExtension] lowercaseString];
+          if (![ext isEqualToString: @"ttf"] && ![ext isEqualToString: @"otf"])
+            continue;
+          NSURL *url = [NSURL fileURLWithPath: [dir stringByAppendingPathComponent: file]];
+          CTFontManagerRegisterFontsForURL ((__bridge CFURLRef) url, kCTFontManagerScopeProcess, NULL);
+        }
+    }
 }
