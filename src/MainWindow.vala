@@ -479,6 +479,9 @@ public class MainWindow : Gtk.ApplicationWindow {
     @lock.visible    = !editable;
     lbl.label        = label;
     lbl.tooltip_text = tooltip;
+#if PRIMARY_COMMAND
+    update_tab_menu();
+#endif
   }
 
   //-------------------------------------------------------------
@@ -551,6 +554,9 @@ public class MainWindow : Gtk.ApplicationWindow {
   //-------------------------------------------------------------
   // This needs to be called whenever the tab is changed
   private void tab_changed( int page_num ) {
+#if PRIMARY_COMMAND
+    update_tab_menu();
+#endif
     var map = get_map( page_num );
     do_buffer_changed( map.current_undo_buffer() );
     on_current_changed( map );
@@ -565,6 +571,9 @@ public class MainWindow : Gtk.ApplicationWindow {
   //-------------------------------------------------------------
   // Called whenever the current tab is moved to a new position
   private void tab_reordered( Widget w, uint page_num ) {
+#if PRIMARY_COMMAND
+    update_tab_menu();
+#endif
     save_tab_state( (int)page_num );
   }
 
@@ -635,6 +644,9 @@ public class MainWindow : Gtk.ApplicationWindow {
   //-------------------------------------------------------------
   // This should be called when the tab page is actually gone
   private void tab_removed( Widget w, uint page_num ) {
+#if PRIMARY_COMMAND
+    update_tab_menu();
+#endif
     save_tab_state( _nb.page );
   }
 
@@ -724,6 +736,9 @@ public class MainWindow : Gtk.ApplicationWindow {
 
     // Add the tab
     var tab_index = _nb.append_page( overlay, tab_box );
+#if PRIMARY_COMMAND
+    update_tab_menu();
+#endif
 
     tab_motion.enter.connect((x, y) => {
       tab_revealer.reveal_child = true; // (_nb.get_n_pages() > 1);
@@ -3251,6 +3266,8 @@ public class MainWindow : Gtk.ApplicationWindow {
     // ---- Table ----
     m = sub( menubar, _( "Table" ) );
     s = sec( m );
+    mi( s, KeyCommand.NODE_CHANGE_TABLE, _( "Add or Edit Table…" ) );
+    s = sec( m );
     t = sub( s, _( "Row" ) );
     mi( t, KeyCommand.TABLE_ADD_ROW_ABOVE, _( "Add Above" ) );
     mi( t, KeyCommand.TABLE_ADD_ROW_BELOW, _( "Add Below" ) );
@@ -3299,6 +3316,22 @@ public class MainWindow : Gtk.ApplicationWindow {
   // Enables the generated menu items that are valid for the current map
   // state, and keeps Undo/Redo in step with the current undo buffer.
   private bool _menu_update_pending = false;
+
+  private GLib.Menu?     _tab_menu   = null;
+  private SimpleAction?  _tab_action = null;
+
+  //-------------------------------------------------------------
+  // Rebuilds the list of open tabs in the Window menu.
+  private void update_tab_menu() {
+    if( (_tab_menu == null) || (_nb == null) ) return;
+    _tab_menu.remove_all();
+    for( int i=0; i<_nb.get_n_pages(); i++ ) {
+      var item = new GLib.MenuItem( get_tab_label_name( i ), null );
+      item.set_action_and_target_value( "win.select-tab", new Variant.int32( i ) );
+      _tab_menu.append_item( item );
+    }
+    _tab_action.set_state( new Variant.int32( _nb.page ) );
+  }
 
   private void update_macos_menu_state() {
 
