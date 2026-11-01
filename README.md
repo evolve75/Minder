@@ -74,6 +74,10 @@ After installing all required dependencies, run `sudo ./app install` and then ru
 
 Alternatively, you can install the elementary OS Flatpak using `./app elementary` or the Flathub Flatpak using `./app flathub`.  Once the Flatpak has been built, it can be run using `./app run-flatpak`.  To make this work, make sure that `flatpak` and `flatpak-builder` are installed on your system along with the required Sdk and Platform flatpaks.
 
+### macOS
+
+Minder builds and runs natively on macOS. See [README-MACOS.md](README-MACOS.md) for what is different and for the build steps.
+
 ## Pre-Built Flatpaks
 
 Minder is available as a Flatpak (recommended) via Flathub and elementary OS AppCenter.
