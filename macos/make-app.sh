@@ -198,6 +198,10 @@ if [[ "${identity}" != "-" || "${MINDER_HARDENED_RUNTIME:-0}" == "1" ]]; then
 fi
 
 if [[ -n "${MINDER_ENTITLEMENTS:-}" ]]; then
+  if [[ "${identity}" == Developer\ ID* ]] && grep -q 'disable-library-validation' "${MINDER_ENTITLEMENTS}"; then
+    echo "error: ${MINDER_ENTITLEMENTS} disables library validation; do not use it with a Developer ID identity." >&2
+    exit 1
+  fi
   sign_args+=(--entitlements "${MINDER_ENTITLEMENTS}")
 fi
 
