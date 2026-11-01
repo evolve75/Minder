@@ -364,16 +364,20 @@ public class Minder : Gtk.Application {
           }
           return( true );
         });
-        var map = appwin.create_map();
+        var map      = appwin.create_map();
+        var exported = false;
         map.doc.load_filename( infile, false );
         map.doc.load( UpgradeAction.READ_ONLY, (loaded) => {
           if( loaded ) {
-            export.export( outfile, map );
+            exported = export.export( outfile, map );
+            if( !exported ) {
+              stderr.printf( _( "ERROR:  Unable to export to %s" ).printf( outfile ) + "\n" );
+            }
           } else {
             stderr.printf( _( "ERROR:  Unable to load Minder input file %s" ).printf( infile ) + "\n" );
           }
         });
-        return( true );
+        return( exported );
       }
     }
 
