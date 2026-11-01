@@ -76,7 +76,8 @@ public class Minder : Gtk.Application {
     var display = Gdk.Display.get_default();
     var palette = new CssProvider();
     palette.load_from_string(
-      "@define-color GRAPE_700 #452981; @define-color SILVER_100 #fafafa; @define-color SILVER_500 #abacae;"
+      "@define-color GRAPE_700 #452981; @define-color SILVER_100 #fafafa; @define-color SILVER_500 #abacae; " +
+      "headerbar.native-window-controls { padding-left: 76px; }"
     );
     StyleContext.add_provider_for_display( display, palette, STYLE_PROVIDER_PRIORITY_APPLICATION );
     var app_css = new CssProvider();
