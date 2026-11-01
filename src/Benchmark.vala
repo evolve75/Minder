@@ -222,7 +222,8 @@ public class Benchmark {
   private static int64 rss_kb() {
     try {
       string output;
-      Process.spawn_command_line_sync( "ps -o rss= -p %d".printf( (int)Posix.getpid() ), out output );
+      string[] argv = { "ps", "-o", "rss=", "-p", ((int)Posix.getpid()).to_string() };
+      Process.spawn_sync( null, argv, null, SpawnFlags.SEARCH_PATH, null, out output );
       return( int64.parse( output.strip() ) );
     } catch( SpawnError e ) {
       return( -1 );
