@@ -38,7 +38,9 @@ public class XmlFragment {
     if( doc != null ) {
       Xml.Node* root = doc->get_root_element();
       if( root != null ) {
-        result = root->copy( 1 );
+        // Copy without a document: a plain copy keeps pointing at the parsed
+        // document, which is freed below, until it is attached somewhere else
+        result = root->doc_copy( null, 1 );
       }
       delete doc;
     }

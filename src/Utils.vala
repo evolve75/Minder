@@ -32,9 +32,12 @@ public class Utils {
   // content.  Indentation between elements is parsed as blank text nodes
   // and must not be mistaken for the node's text.
   public static bool has_text_content( Xml.Node* n ) {
-    return( (n->children != null) &&
-            (n->children->type == Xml.ElementType.TEXT_NODE) &&
-            (n->children->get_content().strip() != "") );
+    if( (n->children == null) || (n->children->type != Xml.ElementType.TEXT_NODE) ) {
+      return( false );
+    }
+    // Whitespace followed by element siblings is indentation; whitespace on its own
+    // is the text itself (a node named " ").
+    return( (n->children->next == null) || (n->children->get_content().strip() != "") );
   }
 
   //-------------------------------------------------------------
