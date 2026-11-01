@@ -25,6 +25,7 @@
  * of a shell script) keeps the bundle signable and notarizable.
  */
 
+#include <fcntl.h>
 #include <libgen.h>
 #include <limits.h>
 #include <mach-o/dyld.h>
@@ -53,6 +54,8 @@ write_loader_cache (const char *res, const char *cache_file)
   FILE  *in;
   FILE  *out;
   char   line[PATH_MAX * 2];
+  char   tmp_file[PATH_MAX * 2];
+  int    fd;
   size_t res_len = strlen (res);
 
   snprintf (template_path, sizeof (template_path),
@@ -61,9 +64,17 @@ write_loader_cache (const char *res, const char *cache_file)
   in = fopen (template_path, "r");
   if (in == NULL)
     return -1;
-  out = fopen (cache_file, "w");
+
+  /* Write a fresh file next to the cache and rename it into place, so a
+   * symlink planted at the cache path is replaced rather than followed. */
+  snprintf (tmp_file, sizeof (tmp_file), "%s.%d", cache_file, (int) getpid ());
+  unlink (tmp_file);
+  fd = open (tmp_file, O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW, 0600);
+  out = (fd >= 0) ? fdopen (fd, "w") : NULL;
   if (out == NULL)
     {
+      if (fd >= 0)
+        close (fd);
       fclose (in);
       return -1;
     }
@@ -84,7 +95,11 @@ write_loader_cache (const char *res, const char *cache_file)
     }
 
   fclose (in);
-  fclose (out);
+  if (fclose (out) != 0 || rename (tmp_file, cache_file) != 0)
+    {
+      unlink (tmp_file);
+      return -1;
+    }
   return 0;
 }
 
