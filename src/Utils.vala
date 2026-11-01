@@ -227,8 +227,13 @@ public class Utils {
   }
 
   //-------------------------------------------------------------
-  // Opens the given URL in the proper external default application
+  // Opens the given URL in the proper external default application.
+  // Only links that are safe to follow are opened (see UrlSafety).
   public static void open_url( string url ) {
+    if( !UrlSafety.is_safe_url( url ) ) {
+      stdout.printf( _( "error: not opening %s\n" ), url );
+      return;
+    }
     try {
       AppInfo.launch_default_for_uri( url, null );
     } catch( GLib.Error e ) {

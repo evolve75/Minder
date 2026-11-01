@@ -233,6 +233,7 @@ public static int main (string[] args) {
   tests.add( new MinderTest.LatexSpanParserTest() );
   tests.add( new MinderTest.NodeImageTest() );
   tests.add( new MinderTest.NodeTableModelTest() );
+  tests.add( new MinderTest.UrlSafetyTest() );
   tests.add( new MinderTest.XmlFragmentTest() );
   tests.add( new MinderTest.XmlSafetyTest() );
   tests.add( new MinderTest.PortLogicTest() );
