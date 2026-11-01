@@ -71,6 +71,9 @@ public class LatexRenderer : Object {
 
   private const int    MAX_SOURCE_LENGTH = 16384;
   private const int    MAX_CACHE_ITEMS   = 512;
+
+  // Turned off by the benchmark to compare against the unclipped mask
+  public static bool clip_mask = true;
   private const double LASEM_BASE_SIZE   = 12.0;        // Lasem lays formulas out at 12pt
   private const double CSS_PX_PER_PT     = 96.0 / 72.0;
 
@@ -273,6 +276,12 @@ public class LatexRenderer : Object {
     ctx.get_current_point( out x, out baseline );
     ctx.save();
     ctx.set_source_rgba( _draw_red, _draw_green, _draw_blue, _draw_alpha );
+    if( clip_mask ) {
+      // Without a clip cairo composites the mask over the whole clip area for every
+      // formula; confine it to the formula's own box (with a little slack)
+      ctx.rectangle( x - 2, baseline - image.ascent - 2, image.width + 4, image.ascent + image.descent + 4 );
+      ctx.clip();
+    }
     ctx.mask_surface( image.surface, x, baseline - image.ascent );
     ctx.restore();
   }
