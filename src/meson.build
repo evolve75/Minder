@@ -63,6 +63,7 @@ sources += files(
     'PixbufPainter.vala',
     'Preferences.vala',
     'QuickEntry.vala',
+    'RecentFiles.vala',
     'ReleaseNotes.vala',
     'Selection.vala',
     'SequenceNum.vala',

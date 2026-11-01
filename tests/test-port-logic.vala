@@ -29,6 +29,11 @@ namespace MinderTest {
       this.add_test( "sidebar-default", test_sidebar_default );
       this.add_test( "sidebar-legacy-canvas-width", test_sidebar_legacy );
       this.add_test( "sidebar-keeps-canvas-room", test_sidebar_room );
+      this.add_test( "recent-newest-first", test_recent_order );
+      this.add_test( "recent-no-duplicates", test_recent_dedup );
+      this.add_test( "recent-capped", test_recent_cap );
+      this.add_test( "recent-remove", test_recent_remove );
+      this.add_test( "recent-labels", test_recent_label );
     }
 
     private bool first_child_has_text( string xml ) {
@@ -66,6 +71,42 @@ namespace MinderTest {
       Assert.int_compare( 250, PanedGeometry.sidebar_width( 600, 550 ) );   // tiny window: floor
       Assert.int_compare( 500, PanedGeometry.sidebar_width( 600, 800 ) );   // canvas keeps 300
     }
+
+    private void test_recent_order() {
+      var list = RecentFiles.add( RecentFiles.add( {}, "/a.minder" ), "/b.minder" );
+      Assert.int_compare( 2, list.length );
+      Assert.string_compare( "/b.minder", list[0] );
+      Assert.string_compare( "/a.minder", list[1] );
+    }
+
+    private void test_recent_dedup() {
+      var list = RecentFiles.add( RecentFiles.add( RecentFiles.add( {}, "/a" ), "/b" ), "/a" );
+      Assert.int_compare( 2, list.length );
+      Assert.string_compare( "/a", list[0] );
+      Assert.string_compare( "/b", list[1] );
+    }
+
+    private void test_recent_cap() {
+      string[] list = {};
+      for( int i=0; i<(RecentFiles.MAX + 5); i++ ) {
+        list = RecentFiles.add( list, "/f%d".printf( i ) );
+      }
+      Assert.int_compare( RecentFiles.MAX, list.length );
+      Assert.string_compare( "/f%d".printf( RecentFiles.MAX + 4 ), list[0] );
+    }
+
+    private void test_recent_remove() {
+      var list = RecentFiles.remove( {"/a", "/b", "/c"}, "/b" );
+      Assert.int_compare( 2, list.length );
+      Assert.string_compare( "/c", list[1] );
+    }
+
+    private void test_recent_label() {
+      string[] list = {"/x/map.minder", "/y/map.minder", "/x/other.minder"};
+      Assert.string_compare( "other.minder", RecentFiles.label( list, "/x/other.minder" ) );
+      Assert.true( RecentFiles.label( list, "/x/map.minder" ).contains( "/x" ) );
+    }
+
 
   }
 

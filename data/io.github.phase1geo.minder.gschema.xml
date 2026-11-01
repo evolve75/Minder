@@ -347,5 +347,10 @@
       <summary>Determines if the release notes will be displayed on application startup after an upgrade.</summary>
       <description>Determines if the release notes will be displayed on application startup after an upgrade.</description>
     </key>
+    <key name="recent-files" type="as">
+      <default>[]</default>
+      <summary>Recently used documents</summary>
+      <description>The paths of the most recently opened or saved documents, newest first.</description>
+    </key>
   </schema>
 </schemalist>
