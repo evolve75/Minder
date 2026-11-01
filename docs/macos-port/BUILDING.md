@@ -33,12 +33,30 @@ and `GDK_PIXBUF_MODULE_FILE` at the bundle. It is not signed or notarized.
 | `webkit` | true | Release notes open in the system browser. |
 | `primary-modifier` | auto | `auto` = Command on macOS, Control elsewhere. |
 
+## What differs from Linux
+
+macOS-only behaviour is compiled in only on macOS (`PRIMARY_COMMAND`, `MACOS_PRINT`), so Linux
+builds keep upstream behaviour.
+
+- **Menu bar:** a full native menu bar (File, Edit, Format, View, Node, Insert, Arrange, Go,
+  Table, Window, Help) built from the command list in `MainWindow.setup_macos_menubar()`.
+  Shortcuts are shown as native key equivalents (so they can be remapped in System Settings).
+  Each item's validity is evaluated live (`src/live-action.c`); plain-key shortcuts only apply
+  while the canvas has focus, so they never take keystrokes meant for a text field.
+- **Shortcuts:** Command is the primary modifier (`-Dprimary-modifier=auto`).
+- **Printing:** the map is rendered to a PDF and printed through the native macOS print panel
+  (`src/macos-print.m`), because Homebrew's GTK has no CUPS print backend.
+- **Files:** `.minder` is a registered document type with its own icon; Finder, Open With and
+  Dock drops open files.
+- **Undo:** while a just-created node is still being edited, Undo falls back to the map history.
+
 ## Known limitations
 
-- LaTeX rendering is unavailable (Lasem is not packaged for macOS).
-- GTK4 draws its own menus and window chrome; there is no native menubar.
-- Shortcut handling assumes GTK reports Command as `META_MASK` (unverified
-  interactively).
+- LaTeX rendering is unavailable (Lasem is not packaged for macOS; see issue #17).
+- GTK4 draws its own window chrome and dialogs. The menu bar, file chooser and print panel are native.
+- Drag and drop has not been verified (issue #13).
+- The bundle is signed ad hoc only; Developer ID signing and notarization need an Apple
+  Developer account (issue #20).
 
 ## Signing and notarization
 
