@@ -656,7 +656,7 @@ public class ExportXMind8 : Export {
   private bool import_content( MindMap map, string fname, string dir, HashMap<string,IdObject> id_map ) {
 
     // Read in the contents of the XMind 8 file
-    var doc = Xml.Parser.read_file( fname, null, Xml.ParserOption.HUGE );
+    var doc = XmlSafety.read_file( fname );
     if( doc == null ) {
       return( false );
     }
@@ -908,7 +908,7 @@ public class ExportXMind8 : Export {
   private bool import_styles( MindMap map, string fname, HashMap<string,IdObject> id_map ) {
 
     // Read in the contents of the Freemind file
-    var doc = Xml.Parser.read_file( fname, null, Xml.ParserOption.HUGE );
+    var doc = XmlSafety.read_file( fname );
     if( doc == null ) {
       return( false );
     }

@@ -140,7 +140,7 @@ public class ExportOutliner : Export {
   public override bool import( string fname, MindMap map ) {
 
     // Read in the contents of the OPML file
-    var doc = Xml.Parser.read_file( fname, null, Xml.ParserOption.HUGE );
+    var doc = XmlSafety.read_file( fname );
     if( doc == null ) {
       return( false );
     }

@@ -101,6 +101,7 @@ sources += files(
     'UrlEditor.vala',
     'Utils.vala',
     'XmlFragment.vala',
+    'XmlSafety.vala',
     'ZoomWidget.vala'
 )
 

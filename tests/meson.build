@@ -8,5 +8,6 @@ test_vala_sources = files(
   'test-node-image.vala',
   'test-node-table-model.vala',
   'test-xml-fragment.vala',
+  'test-xml-safety.vala',
   'test-port-logic.vala',
 )
