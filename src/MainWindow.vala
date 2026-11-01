@@ -131,6 +131,7 @@ public class MainWindow : Gtk.ApplicationWindow {
   private GLib.Settings     _settings;
   private HeaderBar         _header;
   private Notebook?         _nb             = null;
+  private const uint        RECOVERY_INTERVAL = 30;   // Seconds between recovery copies of unsaved documents
   private Paned             _pane           = null;
   private Notebook?         _inspector_nb   = null;
   private Stack?            _stack          = null;
@@ -439,6 +440,15 @@ public class MainWindow : Gtk.ApplicationWindow {
     // the Dock icon shows the window again and Quit (Cmd-Q) exits
     hide_on_close = true;
 #endif
+
+    // Keep a recovery copy of every document with unsaved changes, so that a
+    // crash or force-quit does not lose the work
+    Timeout.add_seconds( RECOVERY_INTERVAL, () => {
+      for( int i=0; i<_nb.get_n_pages(); i++ ) {
+        get_map( i ).doc.write_recovery();
+      }
+      return( Source.CONTINUE );
+    });
 
     close_request.connect(() => {
       save_window_size();

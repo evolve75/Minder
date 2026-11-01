@@ -52,7 +52,7 @@ echo "    LaTeX rendering: ${latex}"
 meson setup "${build}" "${repo}" --prefix=/usr/local --buildtype=release \
   -Dgranite=false -Dlatex="${latex}" -Dwebkit=false >/dev/null
 if ! meson compile -C "${build}" >"${out}/compile.log" 2>&1; then
-  grep -a -m5 "error" "${out}/compile.log" >&2 || tail -n 20 "${out}/compile.log" >&2
+  grep -a -m5 "error:" "${out}/compile.log" >&2 || tail -n 20 "${out}/compile.log" >&2
   exit 1
 fi
 DESTDIR="${stage}" meson install -C "${build}" >/dev/null
