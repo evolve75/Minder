@@ -301,6 +301,7 @@ public class Node : Object {
   private   NodeLink?    _linked_node    = null;
   private   string?      _sticker        = null;
   private   Pixbuf?      _sticker_buf    = null;
+  private   PixbufPainter _sticker_painter = new PixbufPainter();
   private   SequenceNum  _sequence_num   = null;
   private   Callout?     _callout        = null;
   private   bool         _sequence       = false;
@@ -3288,8 +3289,7 @@ public class Node : Object {
       }
 
       // Draw sticker
-      cairo_set_source_pixbuf( ctx, _sticker_buf, x, y );
-      ctx.paint_with_alpha( _alpha );
+      _sticker_painter.paint( ctx, _sticker_buf, x, y, _alpha );
 
     }
 

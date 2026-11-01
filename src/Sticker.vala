@@ -33,6 +33,7 @@ public class Sticker : Object {
   private weak MindMap _map;
   private string  _name;
   private Pixbuf  _buf;
+  private PixbufPainter _painter = new PixbufPainter();
   private double  _posx = 0.0;
   private double  _posy = 0.0;
 
@@ -180,8 +181,7 @@ public class Sticker : Object {
     }
 
     // Draw sticker image
-    cairo_set_source_pixbuf( ctx, _buf, posx, posy );
-    ctx.paint_with_alpha( opacity );
+    _painter.paint( ctx, _buf, posx, posy, opacity );
 
     // Draw droppable box, if necessary
     if( mode == StickerMode.DROPPABLE ) {
