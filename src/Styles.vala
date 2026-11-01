@@ -134,8 +134,8 @@ public class Styles {
         if( it->name == "style" ) {
           string? l = it->get_prop( "level" );
           string? s = it->get_prop( "isset" );
-          if( l != null ) {
-            int level = int.parse( l );
+          int level = (l != null) ? int.parse( l ) : -1;
+          if( (level >= 0) && (level < _styles.length) ) {
             _styles.index( level ).style.load_node( it );
             _styles.index( level ).style.load_connection( it );
             _styles.index( level ).style.load_callout( it );

@@ -208,7 +208,11 @@ public class Templates {
       return;
     }
 
-    var root    = doc->get_root_element();
+    var root = doc->get_root_element();
+    if( root == null ) {
+      delete doc;
+      return;
+    }
     var version = root->get_prop( "version" );
 
     for( Xml.Node* it = root->children; it != null; it = it->next ) {
@@ -216,7 +220,10 @@ public class Templates {
         var gt = it->get_prop( "name" );
         if( gt != null ) {
           var group_index = (int)TemplateType.parse( gt );
-          _template_groups.index( group_index ).load( it );
+          // Unknown group names parse to NUM, which is not a group
+          if( (group_index >= 0) && (group_index < _template_groups.length) ) {
+            _template_groups.index( group_index ).load( it );
+          }
         }
       }
     }

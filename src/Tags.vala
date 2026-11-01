@@ -157,6 +157,10 @@ public class Tags {
   //-------------------------------------------------------------
   // Returns the tag at the given index.
   public Tag? get_tag( int index ) {
+    // Indices come from saved files, which may name a tag that no longer exists
+    if( (index < 0) || (index >= _tags.length) ) {
+      return( null );
+    }
     return( _tags.index( index ) );
   }
 

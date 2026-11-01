@@ -417,7 +417,7 @@ public class Document : Object {
 
     // Close the archive
     if( archive.close () != Archive.Result.OK) {
-      error( "Error: %s (%d)", archive.error_string(), archive.errno() );
+      warning( "Error: %s (%d)", archive.error_string(), archive.errno() );
     }
 
     // Set the image directory in the image manager

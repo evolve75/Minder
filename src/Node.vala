@@ -125,7 +125,7 @@ public enum NodeSide {
       case "top"    :  return( TOP );
       case "right"  :  return( RIGHT );
       case "bottom" :  return( BOTTOM );
-      default       :  assert_not_reached();
+      default       :  return( RIGHT );   // a value from a damaged file must not abort the app
     }
   }
 
@@ -1901,6 +1901,9 @@ public class Node : Object {
       if( l != null ) {
         layout = map.layouts.get_layout( l );
       }
+      if( layout == null ) {
+        layout = map.layouts.get_default();
+      }
       _loaded = true;
     }
 
@@ -1939,6 +1942,9 @@ public class Node : Object {
       string? l = n->get_prop( "layout" );
       if( l != null ) {
         layout = map.layouts.get_layout( l );
+      }
+      if( layout == null ) {
+        layout = map.layouts.get_default();
       }
     }
 
