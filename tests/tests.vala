@@ -232,6 +232,7 @@ public static int main (string[] args) {
   tests.add( new MinderTest.LatexSpanParserTest() );
   tests.add( new MinderTest.NodeImageTest() );
   tests.add( new MinderTest.NodeTableModelTest() );
+  tests.add( new MinderTest.XmlFragmentTest() );
 
   exit_status = tests.run();
 

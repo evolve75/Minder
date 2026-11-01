@@ -117,6 +117,7 @@ test_executable = executable(
     'src/ImageManager.vala',
     'src/NodeImage.vala',
     'src/NodeTableModel.vala',
+    'src/XmlFragment.vala',
   ),
   dependencies: dependencies,
 )

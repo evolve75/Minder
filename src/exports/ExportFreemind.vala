@@ -142,16 +142,13 @@ public class ExportFreemind : Export {
     Xml.Node* head = new Xml.Node( null, "head" );
 
     var note_html = Utils.markdown_to_html( node.note, "body" );
-    var note_doc  = Xml.Parser.parse_memory( note_html, note_html.length );
-    var body      = note_doc->get_root_element()->copy( 1 );
+    var body      = XmlFragment.copy_root( note_html, "body", node.note );
 
     html->add_child( head );
     html->add_child( body );
 
     rc->new_prop( "TYPE", "NOTE" );
     rc->add_child( html );
-
-    delete note_doc;
 
     return( rc );
 

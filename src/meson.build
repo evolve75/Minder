@@ -95,6 +95,7 @@ sources += files(
     'UnicodeInsert.vala',
     'UrlEditor.vala',
     'Utils.vala',
+    'XmlFragment.vala',
     'ZoomWidget.vala'
 )
 

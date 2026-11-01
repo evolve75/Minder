@@ -388,8 +388,7 @@ public class ExportXMind8 : Export {
     plain->add_content( node.note );
 
     var note_html = replace_formatting( Utils.markdown_to_html( node.note, "html" ), styles );
-    var note_doc  = Xml.Parser.parse_memory( note_html, note_html.length );
-    var html      = note_doc->get_root_element()->copy( 1 );
+    var html      = XmlFragment.copy_root( note_html, "html", node.note );
 
     note->add_child( plain );
     note->add_child( html );
