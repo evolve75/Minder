@@ -94,6 +94,13 @@ minder_macos_print_pdf (GtkWindow *parent, const char *pdf_path, const char *job
       [op setShowsPrintPanel: YES];
       [op setShowsProgressPanel: YES];
 
+      /* The default panel hides paper size and orientation (they normally live
+         in Page Setup, which this app does not offer). */
+      NSPrintPanel *panel = [op printPanel];
+      [panel setOptions: [panel options] | NSPrintPanelShowsPaperSize
+                                         | NSPrintPanelShowsOrientation
+                                         | NSPrintPanelShowsScaling];
+
       if (live_delegates == nil)
         live_delegates = [[NSMutableSet alloc] init];
       MinderPrintDelegate *delegate = [[MinderPrintDelegate alloc] init];
