@@ -405,6 +405,14 @@ public class Shortcuts {
     var         shift   = (mods & ModifierType.SHIFT_MASK)   == ModifierType.SHIFT_MASK;
     var         alt     = (mods & ModifierType.ALT_MASK)     == ModifierType.ALT_MASK;
 
+#if PRIMARY_COMMAND
+    // Command is the primary modifier, so Control+Command is a different chord
+    // (e.g. Show Sidebar) and must not trigger the Command-only shortcut.
+    if( (mods & ModifierType.CONTROL_MASK) != 0 ) {
+      return( false );
+    }
+#endif
+
     Display.get_default().map_keycode( keycode, out ks, out kvs );
 
     for( int i=0; i<_shortcuts.length; i++ ) {
