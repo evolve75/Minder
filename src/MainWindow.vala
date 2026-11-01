@@ -1791,23 +1791,7 @@ public class MainWindow : Gtk.ApplicationWindow {
       margin_top    = 5,
       margin_bottom = 5
     };
-#if PRIMARY_COMMAND
-    // A close button so that the sidebar can be dismissed with the mouse
-    var sidebar_close = new Button.from_icon_name( "window-close-symbolic" ) {
-      has_frame    = false,
-      halign       = Align.END,
-      tooltip_text = _( "Hide Sidebar" )
-    };
-    sidebar_close.clicked.connect(() => {
-      hide_properties();
-    });
-    var sidebar_head = new Box( Orientation.VERTICAL, 0 );
-    sidebar_head.append( sidebar_close );
-    sidebar_head.append( sidebar_switcher );
-    box.append( sidebar_head );
-#else
     box.append( sidebar_switcher );
-#endif
     box.append( _stack );
 
     _themer = new ThemeEditor( this );
