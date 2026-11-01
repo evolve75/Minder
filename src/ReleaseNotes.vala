@@ -155,7 +155,7 @@ public class ReleaseNotes : Granite.Dialog {
     _viewer.load_html( html, null );
 #else
     try {
-      var path = Path.build_filename( Environment.get_tmp_dir(), "minder-release-notes.html" );
+      var path = Path.build_filename( DirUtils.make_tmp( "minder-release-notes-XXXXXX" ), "release-notes.html" );
       FileUtils.set_contents( path, html );
       AppInfo.launch_default_for_uri( File.new_for_path( path ).get_uri(), null );
     } catch( Error e ) {
