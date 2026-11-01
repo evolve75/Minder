@@ -52,12 +52,16 @@ builds keep upstream behaviour.
 
 ## Known limitations
 
-- LaTeX formulas need Lasem, which is not in Homebrew. Run `macos/build-lasem.sh` once (it builds a
-  pinned commit into `build-deps/`, which is git-ignored), then `source macos/env.sh` and
-  `macos/make-app.sh`; the bundle then includes the library and `-Dlatex=true` is used
-  automatically. Fractions, scripts and most layout render. Square roots, big operators
-  (sum, integral) and stretched brackets draw with TeX's `cmex10`/`cmsy10` fonts, which macOS
-  does not have, so those glyphs show wrong until the fonts question in issue #17 is settled.
+- LaTeX formulas need Lasem, which is not in Homebrew, and TeX's math fonts. Run
+  `macos/build-lasem.sh` once (it builds a pinned commit into `build-deps/`, which is git-ignored),
+  then `macos/build-tex-fonts.sh`, then `source macos/env.sh` and `macos/make-app.sh`. The bundle
+  then includes the library and the fonts, and `-Dlatex=true` is used automatically.
+- Lasem draws square roots, big operators and stretched brackets with TeX's `cmex10`, `cmsy10`,
+  `cmmi10` and `cmr10`. `build-tex-fonts.sh` converts MacTeX's Type 1 copies to TrueType (macOS
+  cannot load Type 1) using `fonttools` in a virtual environment under `build-deps/`; the app
+  registers them from `Resources/fonts` at startup. They are under the SIL OFL with Reserved Font
+  Names, so an app bundled with the converted fonts is for local use only. To distribute it, rename
+  the fonts and the names in Lasem's font table first.
 - Lasem's upstream has had no commits since 2020; its Makefile installs only the DOM headers, so
   the build script installs the MathML/SVG headers itself, and stubs the gtk-doc and
   introspection autoconf macros.

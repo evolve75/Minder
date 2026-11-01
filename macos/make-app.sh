@@ -92,6 +92,13 @@ cp "${brew_prefix}"/share/glib-2.0/schemas/*.gschema.xml "${res}/share/glib-2.0/
 glib-compile-schemas "${res}/share/glib-2.0/schemas"
 gtk4-update-icon-cache -q -t -f "${res}/share/icons/hicolor" || true
 
+# TeX math fonts for Lasem (macos/build-tex-fonts.sh); the app registers them at startup
+tex_fonts="${MINDER_DEPS_DIR:-${repo}/build-deps}/fonts"
+if [[ "${latex}" == "true" && -d "${tex_fonts}" ]]; then
+  mkdir -p "${res}/fonts"
+  cp "${tex_fonts}"/*.ttf "${res}/fonts/"
+fi
+
 echo "==> Building launcher and Info.plist"
 # The main executable is a small Mach-O launcher (a script would not be
 # signable/notarizable as a main executable); it points GLib/GTK at the bundle.

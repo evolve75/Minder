@@ -374,6 +374,12 @@ public class Minder : Gtk.Application {
   // Main routine which gets everything started.
   public static int main( string[] args ) {
 
+#if MACOS_WINDOW
+    // Fonts shipped in the app bundle (TeX math fonts for LaTeX formulas) must be
+    // known before GTK builds its font list
+    MacosWindow.register_bundled_fonts();
+#endif
+
     // Initialize the GtkSource infrastructure
     GtkSource.init();
 

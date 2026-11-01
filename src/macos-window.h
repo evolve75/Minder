@@ -42,6 +42,10 @@ gboolean minder_macos_window_use_native_controls (GtkWindow *window);
 typedef void (*MinderReopenFunc) (gpointer user_data);
 void minder_macos_set_reopen_handler (MinderReopenFunc callback, gpointer user_data);
 
+/* Makes the fonts in the bundle's Resources/fonts available to this process.
+ * Call before GTK creates its font map. */
+void minder_macos_register_bundled_fonts (void);
+
 G_END_DECLS
 
 #endif /* MINDER_MACOS_WINDOW_H */
