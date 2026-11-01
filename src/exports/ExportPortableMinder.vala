@@ -117,11 +117,7 @@ public class ExportPortableMinder : Export {
     archive.support_filter_gzip();
     archive.support_format_all();
 
-    Archive.ExtractFlags flags;
-    flags  = Archive.ExtractFlags.TIME;
-    flags |= Archive.ExtractFlags.PERM;
-    flags |= Archive.ExtractFlags.ACL;
-    flags |= Archive.ExtractFlags.FFLAGS;
+    var flags = ArchiveSafety.extract_flags();
 
     Archive.WriteDisk extractor = new Archive.WriteDisk();
     extractor.set_options( flags );
@@ -143,6 +139,11 @@ public class ExportPortableMinder : Export {
     unowned Archive.Entry entry;
 
     while( archive.next_header( out entry ) == Archive.Result.OK ) {
+
+      // Skip links and names that would leave the image folder
+      if( !ArchiveSafety.is_safe_entry( entry ) ) {
+        continue;
+      }
 
       // We will need to modify the entry pathname so the file is written to the
       // proper location.
