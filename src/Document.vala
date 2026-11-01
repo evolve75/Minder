@@ -101,8 +101,9 @@ public class Document : Object {
         if( !_from_user ) {
           FileUtils.unlink( _filename );
         }
-        _filename  = value;
-        _from_user = true;
+        _filename   = value;
+        _from_user  = true;
+        _disk_stamp = null;   // a new name: the user already chose to use it
       }
     }
     get {
@@ -141,6 +142,8 @@ public class Document : Object {
   }
 
   public signal void save_changed();
+
+  private string? _disk_stamp = null;   // Stamp of the file on disk when we last read or wrote it
   public signal void read_only_changed();
 
   //-------------------------------------------------------------
@@ -297,7 +300,9 @@ public class Document : Object {
   //-------------------------------------------------------------
   // Reads the stored etag attribute from the given XML document
   private string get_etag( Xml.Doc* doc ) {
-    var e = doc->get_root_element()->get_prop( "etag" );
+    var root = doc->get_root_element();
+    if( root == null ) return( "" );
+    var e = root->get_prop( "etag" );
     return( (e == null) ? "" : e );
   }
 
@@ -341,6 +346,9 @@ public class Document : Object {
 
     var bak_file = get_bak_file();
     var fname    = (FileUtils.test( bak_file, FileTest.EXISTS ) && !_map.settings.get_boolean( "keep-backup-after-save" )) ? bak_file : filename;
+
+    // Remember the state of the file we are reading
+    _disk_stamp = disk_stamp();
 
     // stdout.printf( "Loading fname: %s, temp: %s\n", fname, _temp_dir );
 
@@ -417,34 +425,7 @@ public class Document : Object {
   //-------------------------------------------------------------
   // Saves the given node information to the specified file
   public bool save_xml() {
-
-    Xml.Doc* doc = load_raw();
-
-    if( doc != null ) {
-
-      string file_etag = get_etag( doc );
-
-      // File was modified! Warn the user
-      if( _etag != file_etag ) {
-        var now = new DateTime.now_local();
-        _map.win.ask_modified_overwrite( _map, (overwrite) => {
-          if( overwrite ) {
-            var fname = filename.replace( ".mind", "-backup-%s-%s.mind".printf( now.to_string(), file_etag ) );
-            doc->save_format_file( fname, 1 );
-          } else {
-            var fname = filename.replace( ".mind", "-backup-%s-%s.mind".printf( now.to_string(), _etag ) );
-            save_xml_internal( fname, false );
-            _map.initialize_for_open();
-            load();
-          }
-          delete doc;
-        });
-      }
-
-    }
-
     return( save_xml_internal( get_map_file(), true ) );
-
   }
 
   //-------------------------------------------------------------
@@ -490,8 +471,35 @@ public class Document : Object {
   }
 
   //-------------------------------------------------------------
-  // Archives the contents of the opened Minder directory.
-  public bool save() {
+  // Returns a string that changes whenever the file on disk is modified (its
+  // modification time and size), or an empty string if it does not exist.
+  private string disk_stamp() {
+    try {
+      var info = GLib.File.new_for_path( filename ).query_info( "etag::value,standard::size", FileQueryInfoFlags.NONE );
+      return( "%s:%lld".printf( info.get_etag(), info.get_size() ) );
+    } catch( Error e ) {
+      return( "" );
+    }
+  }
+
+  //-------------------------------------------------------------
+  // Archives the contents of the opened Minder directory.  If the file on disk
+  // was changed by someone else since we last read or wrote it, the user is
+  // asked first and the save completes (or the file is reloaded) after the
+  // answer; false is returned in that case.
+  public bool save( bool force = false ) {
+
+    if( !force && (_disk_stamp != null) && (_disk_stamp != disk_stamp()) ) {
+      _map.win.ask_modified_overwrite( _map, (overwrite) => {
+        if( overwrite ) {
+          save( true );
+        } else {
+          _map.initialize_for_open();
+          load();
+        }
+      });
+      return( false );
+    }
 
     // stdout.printf( "Saving...\n" );
 
@@ -532,6 +540,9 @@ public class Document : Object {
     if( backed && !_map.settings.get_boolean( "keep-backup-after-save" ) ) {
       FileUtils.unlink( bak_file );
     }
+
+    // Remember what we wrote so that later changes by others can be noticed
+    _disk_stamp = disk_stamp();
 
     // Indicate that a save is no longer needed
     _save_needed = false;
