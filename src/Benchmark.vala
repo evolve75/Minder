@@ -57,6 +57,44 @@ public class Benchmark {
     time_scenario( map, "hidpi",    1600, 1000, 2.0, 1.0 );
     time_scenario( map, "zoom-out", 1600, 1000, 1.0, 0.1 );
 
+    check_culling( map, 1.0 );
+    check_culling( map, 0.1 );
+
+  }
+
+  //-------------------------------------------------------------
+  // Draws one frame with and without off-screen culling and reports whether the
+  // pixels are identical.
+  private static void check_culling( MindMap map, double map_scale ) {
+
+    var orig_scale = map.canvas.sfactor;
+    map.canvas.sfactor = map_scale;
+    var paths = new string[] {
+      GLib.Path.build_filename( Environment.get_tmp_dir(), "minder-bench-culled-%g.png".printf( map_scale ) ),
+      GLib.Path.build_filename( Environment.get_tmp_dir(), "minder-bench-full-%g.png".printf( map_scale ) )
+    };
+    for( int pass=0; pass<2; pass++ ) {
+      Node.cull_offscreen = (pass == 0);
+      var surface = new ImageSurface( Format.ARGB32, 1600, 1000 );
+      map.canvas.on_draw( map.canvas, new Context( surface ), 1600, 1000 );
+      surface.write_to_png( paths[pass] );
+    }
+    Node.cull_offscreen = true;
+    map.canvas.sfactor  = orig_scale;
+
+    var differing = 0;
+    var drawn     = 0;
+    try {
+      uint8[] a, b;
+      FileUtils.get_data( paths[0], out a );
+      FileUtils.get_data( paths[1], out b );
+      differing = (a.length != b.length) ? -1 : (Memory.cmp( a, b, a.length ) == 0 ? 0 : 1);
+      drawn     = a.length;
+    } catch( FileError e ) {
+      differing = -2;
+    }
+    stdout.printf( "BENCH culling-identical scale=%g differing=%d (0 means identical) png-bytes=%d  %s\n", map_scale, differing, drawn, paths[0] );
+
   }
 
   //-------------------------------------------------------------

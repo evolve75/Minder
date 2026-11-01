@@ -3744,7 +3744,7 @@ public class Node : Object {
   //-------------------------------------------------------------
   // Draw all of the node links.
   public void draw_links( Context ctx, Theme theme ) {
-    if( !is_root() ) {
+    if( !is_root() && link_within_clip( ctx ) ) {
       draw_link( ctx, theme );
     }
     if( !folded && traversable() ) {
@@ -3768,8 +3768,50 @@ public class Node : Object {
           _children.index( i ).draw_all( ctx, theme, current, motion, exporting );
         }
       }
-      draw( ctx, theme, motion, exporting );
+      if( exporting || is_summarized() || is_summary() || within_clip( ctx ) ) {
+        draw( ctx, theme, motion, exporting );
+      }
     }
+  }
+
+  // Extra distance around a node that may still show part of it (resizer, fold
+  // marker, callout, stickers), so culling never hides something visible.
+  private const double CLIP_PAD = 250.0;
+
+  // Turned off by the benchmark to compare against drawing everything
+  public static bool cull_offscreen = true;
+
+  //-------------------------------------------------------------
+  // Returns true if the given rectangle, grown by CLIP_PAD, overlaps the area
+  // that is currently visible in the context.
+  private static bool rect_within_clip( Context ctx, double x, double y, double w, double h ) {
+    double cx1, cy1, cx2, cy2;
+    ctx.clip_extents( out cx1, out cy1, out cx2, out cy2 );
+    return( !(((x + w + CLIP_PAD) < cx1) || ((x - CLIP_PAD) > cx2) ||
+              ((y + h + CLIP_PAD) < cy1) || ((y - CLIP_PAD) > cy2)) );
+  }
+
+  //-------------------------------------------------------------
+  // Returns true if this node may be visible in the context's clip area.
+  private bool within_clip( Context ctx ) {
+    if( !cull_offscreen ) return( true );
+    double x, y, w, h;
+    bbox( out x, out y, out w, out h );
+    return( rect_within_clip( ctx, x, y, w, h ) );
+  }
+
+  //-------------------------------------------------------------
+  // Returns true if the link between this node and its parent may be visible.
+  private bool link_within_clip( Context ctx ) {
+    if( !cull_offscreen || (parent == null) || is_summarized() || is_summary() ) return( true );
+    double x1, y1, w1, h1, x2, y2, w2, h2;
+    bbox( out x1, out y1, out w1, out h1 );
+    parent.bbox( out x2, out y2, out w2, out h2 );
+    var left   = double.min( x1, x2 );
+    var top    = double.min( y1, y2 );
+    var right  = double.max( x1 + w1, x2 + w2 );
+    var bottom = double.max( y1 + h1, y2 + h2 );
+    return( rect_within_clip( ctx, left, top, right - left, bottom - top ) );
   }
 
   //-------------------------------------------------------------
