@@ -82,12 +82,26 @@ dependencies = [
 # GAction with a live-computed enabled state (implemented in C: see live-action.c)
 sources += files('src/live-action.c')
 
+# Native macOS print panel (Objective-C): the Homebrew GTK has no CUPS backend
+mac_link_args = []
+if host_machine.system() == 'darwin'
+  add_languages('objc', native: false)
+  add_project_arguments(['-fobjc-arc'], language: 'objc')
+  add_project_arguments(['--define=MACOS_PRINT'], language: 'vala')
+  sources += files('src/macos-print.m')
+  mac_link_args = ['-framework', 'Cocoa', '-framework', 'PDFKit']
+endif
+
 # Optional components (see meson_options.txt)
 extra_vala_args = [
     join_paths(meson.project_source_root(), 'vapi', 'fallback', 'live-action.vapi'),
     join_paths(meson.project_source_root(), 'vapi', 'libmarkdown.vapi'),
     join_paths(meson.project_source_root(), 'vapi', 'libwebp.vapi'),
 ]
+
+if host_machine.system() == 'darwin'
+  extra_vala_args += join_paths(meson.project_source_root(), 'vapi', 'fallback', 'macos-print.vapi')
+endif
 
 if get_option('granite')
   dependencies += dependency('granite-7')
@@ -140,6 +154,7 @@ e = executable('io.github.phase1geo.minder',
     gresource,
     dependencies: dependencies,
     include_directories: include_directories('src'),
+    link_args: mac_link_args,
     vala_args: extra_vala_args,
     install : true
 )
