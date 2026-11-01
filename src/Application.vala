@@ -260,8 +260,7 @@ public class Minder : Gtk.Application {
       if( benchmark ) {
         // Let the window map and lay out first, then time the drawing
         Timeout.add( 1500, () => {
-          Benchmark.run( appwin );
-          quit();
+          Benchmark.run( appwin, () => { quit(); } );
           return( Source.REMOVE );
         });
       }

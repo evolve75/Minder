@@ -21,6 +21,8 @@
 
 using Cairo;
 
+public delegate void VoidFunc();
+
 /*
  * Times the canvas drawing code on the loaded map, for the performance work
  * tracked in the M6 milestone.  Run with:  minder --benchmark map.minder
@@ -38,7 +40,7 @@ public class Benchmark {
 
   //-------------------------------------------------------------
   // Runs all scenarios on the current tab and prints the results.
-  public static void run( MainWindow win ) {
+  public static void run( MainWindow win, owned VoidFunc done ) {
 
     var frames = Environment.get_variable( "MINDER_BENCH_FRAMES" );
     if( frames != null ) {
@@ -48,6 +50,7 @@ public class Benchmark {
     var map = win.get_current_map();
     if( map == null ) {
       stderr.printf( "benchmark: no map is open\n" );
+      done();
       return;
     }
 
@@ -69,6 +72,8 @@ public class Benchmark {
     check_culling( map, 0.1 );
     check_latex_clip( map, 1.0 );
     check_latex_clip( map, 0.5 );
+
+    time_animation( map, (owned) done );
 
   }
 
@@ -171,6 +176,34 @@ public class Benchmark {
       differing = -2;
     }
     stdout.printf( "BENCH culling-identical scale=%g differing=%d (0 means identical) png-bytes=%d  %s\n", map_scale, differing, drawn, paths[0] );
+
+  }
+
+  //-------------------------------------------------------------
+  // Runs a zoom-to-fit animation and reports how many frames were drawn and how
+  // long it took, according to the display's frame clock.
+  private static void time_animation( MindMap map, owned VoidFunc done ) {
+
+    var canvas = map.canvas;
+    var frames = 0;
+    int64 first = -1;
+    int64 last  = 0;
+    var seen_running = false;
+    canvas.zoom_to_fit();
+    canvas.add_tick_callback( (w, clock) => {
+      var now = clock.get_frame_time();
+      if( first < 0 ) first = now;
+      last = now;
+      frames++;
+      if( canvas.animator.is_running() ) {
+        seen_running = true;
+      } else if( seen_running || (frames > 120) ) {
+        stdout.printf( "BENCH animation zoom-to-fit: frames=%d duration=%.0f ms\n", frames, (last - first) / 1000.0 );
+        done();
+        return( Source.REMOVE );
+      }
+      return( Source.CONTINUE );
+    });
 
   }
 
