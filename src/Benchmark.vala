@@ -37,6 +37,21 @@ public class Benchmark {
 
   private const int WARMUP = 2;
   private static int FRAMES = 20;   // MINDER_BENCH_FRAMES overrides, for profiling
+  private static string? _scratch = null;
+
+  //-------------------------------------------------------------
+  // A private folder for the scratch files, so that the file names
+  // cannot be pre-created by another user of a shared temp folder.
+  private static string scratch_dir() {
+    if( _scratch == null ) {
+      try {
+        _scratch = DirUtils.make_tmp( "minder-bench-XXXXXX" );
+      } catch( FileError e ) {
+        _scratch = Environment.get_tmp_dir();
+      }
+    }
+    return( _scratch );
+  }
 
   //-------------------------------------------------------------
   // Runs all scenarios on the current tab and prints the results.
@@ -87,7 +102,7 @@ public class Benchmark {
   // The document is pointed at a temporary file first, so the file the map was
   // loaded from is never written.
   private static void time_save( MindMap map ) {
-    var scratch = GLib.Path.build_filename( Environment.get_tmp_dir(), "minder-bench-%d.minder".printf( (int)GLib.get_monotonic_time() ) );
+    var scratch = GLib.Path.build_filename( scratch_dir(), "minder-bench-%d.minder".printf( (int)GLib.get_monotonic_time() ) );
     map.doc.filename = scratch;
     var times = new double[3];
     for( int i=0; i<3; i++ ) {
@@ -96,7 +111,7 @@ public class Benchmark {
       times[i] = (GLib.get_monotonic_time() - start) / 1000.0;
     }
     FileUtils.unlink( scratch );
-    FileUtils.unlink( GLib.Path.build_filename( Environment.get_tmp_dir(), "." + GLib.Path.get_basename( scratch ) + ".bak" ) );
+    FileUtils.unlink( GLib.Path.build_filename( scratch_dir(), "." + GLib.Path.get_basename( scratch ) + ".bak" ) );
     stdout.printf( "BENCH save per call: %.1f ms, %.1f ms, %.1f ms\n", times[0], times[1], times[2] );
   }
 
@@ -175,8 +190,8 @@ public class Benchmark {
     var orig_scale = map.canvas.sfactor;
     map.canvas.sfactor = map_scale;
     var paths = new string[] {
-      GLib.Path.build_filename( Environment.get_tmp_dir(), "minder-bench-culled-%g.png".printf( map_scale ) ),
-      GLib.Path.build_filename( Environment.get_tmp_dir(), "minder-bench-full-%g.png".printf( map_scale ) )
+      GLib.Path.build_filename( scratch_dir(), "minder-bench-culled-%g.png".printf( map_scale ) ),
+      GLib.Path.build_filename( scratch_dir(), "minder-bench-full-%g.png".printf( map_scale ) )
     };
     for( int pass=0; pass<2; pass++ ) {
       Node.cull_offscreen = (pass == 0);
@@ -224,7 +239,7 @@ public class Benchmark {
     var rounds_env    = Environment.get_variable( "MINDER_BENCH_ROUNDS" );
     int ROUNDS        = (rounds_env != null) ? int.parse( rounds_env ) : 40;
     int WARMUP_ROUNDS = 5;
-    var dir       = Environment.get_tmp_dir();
+    var dir       = scratch_dir();
     var first     = map.doc.filename;
     var iter      = 0;
     var base_rss  = 0LL;
@@ -302,8 +317,8 @@ public class Benchmark {
     var orig_scale = map.canvas.sfactor;
     map.canvas.sfactor = map_scale;
     var paths = new string[] {
-      GLib.Path.build_filename( Environment.get_tmp_dir(), "minder-bench-clip-%g.png".printf( map_scale ) ),
-      GLib.Path.build_filename( Environment.get_tmp_dir(), "minder-bench-noclip-%g.png".printf( map_scale ) )
+      GLib.Path.build_filename( scratch_dir(), "minder-bench-clip-%g.png".printf( map_scale ) ),
+      GLib.Path.build_filename( scratch_dir(), "minder-bench-noclip-%g.png".printf( map_scale ) )
     };
     for( int pass=0; pass<2; pass++ ) {
       LatexRenderer.clip_mask = (pass == 0);
