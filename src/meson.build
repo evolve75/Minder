@@ -1,5 +1,6 @@
 sources += files(
     'About.vala',
+    'ArchiveSafety.vala',
     'Animator.vala',
     'Application.vala',
     'BaseMenu.vala',

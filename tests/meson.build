@@ -1,6 +1,7 @@
 test_vala_sources = files(
   'assert.vala',
   'tests.vala',
+  'test-archive-safety.vala',
   'test-example.vala',
   'test-image-manager.vala',
   'test-latex-span-parser.vala',

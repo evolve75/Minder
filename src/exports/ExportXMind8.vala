@@ -1102,11 +1102,7 @@ public class ExportXMind8 : Export {
     archive.support_filter_none();
     archive.support_format_zip();
 
-    Archive.ExtractFlags flags;
-    flags  = Archive.ExtractFlags.TIME;
-    flags |= Archive.ExtractFlags.PERM;
-    flags |= Archive.ExtractFlags.ACL;
-    flags |= Archive.ExtractFlags.FFLAGS;
+    var flags = ArchiveSafety.extract_flags();
 
     Archive.WriteDisk extractor = new Archive.WriteDisk();
     extractor.set_options( flags );
@@ -1120,6 +1116,11 @@ public class ExportXMind8 : Export {
     unowned Archive.Entry entry;
 
     while( archive.next_header( out entry ) == Archive.Result.OK ) {
+
+      // Skip links and names that would leave the folder
+      if( !ArchiveSafety.is_safe_entry( entry ) ) {
+        continue;
+      }
 
       var file = File.new_for_path( Path.build_filename( dir, entry.pathname() ) );
       entry.set_pathname( file.get_path() );
