@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <!--
-  Optional entitlements for the hardened runtime. Use with
+  Entitlements for TESTING an ad-hoc signed bundle under the hardened runtime.
     MINDER_ENTITLEMENTS=macos/Minder.entitlements macos/make-app.sh
-  disable-library-validation is only needed if a library in the bundle is not
-  signed with the same Team ID as the app (it is not needed when everything is
-  signed with one Developer ID, which make-app.sh does).
+  Ad-hoc signatures carry no Team ID, so the bundle's own libraries fail
+  library validation without disable-library-validation.  That entitlement
+  lets the app load unsigned libraries, so make-app.sh refuses to use this file
+  with a Developer ID identity: a distributed build needs no entitlements.
 -->
 <plist version="1.0">
 <dict>
