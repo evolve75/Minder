@@ -1948,9 +1948,9 @@ public class DrawArea : Gtk.DrawingArea {
 
   //-------------------------------------------------------------
   // Enables the clipboard actions that are valid for the given map state.
-  public void update_native_actions( MapState state, UndoBuffer buf ) {
-    _act_undo.set_enabled( buf.undoable() );
-    _act_redo.set_enabled( buf.redoable() );
+  public void update_native_actions( MapState state, bool can_undo, bool can_redo ) {
+    _act_undo.set_enabled( can_undo );
+    _act_redo.set_enabled( can_redo );
     _act_cut.set_enabled(        MapState.matches( state, KeyCommand.EDIT_CUT ) );
     _act_copy.set_enabled(       MapState.matches( state, KeyCommand.EDIT_COPY ) );
     _act_paste.set_enabled(      MapState.matches( state, KeyCommand.EDIT_PASTE ) );
