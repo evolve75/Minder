@@ -85,7 +85,10 @@ public class ExportXMind2021 : Export {
   public override bool export( string fname, MindMap map ) {
 
     // Create temporary directory to place contents in
-    var dir = DirUtils.mkdtemp( "minderXXXXXX" );
+    var dir = Utils.make_temp_dir( "minder-xmind" );
+    if( dir == null ) {
+      return( false );
+    }
 
     var file_list = new FileItems();
 
@@ -100,6 +103,8 @@ public class ExportXMind2021 : Export {
 
     // Archive the contents
     archive_contents( dir, fname, file_list );
+
+    Utils.remove_tree( dir );
 
     return( true );
 
@@ -575,26 +580,26 @@ public class ExportXMind2021 : Export {
   // Main method used to import an XMind mind-map into Minder
   public override bool import( string fname, MindMap map ) {
 
-    stdout.printf( "In XMind 2021 import\n" );
-
     // Create temporary directory to place contents in
-    var dir = DirUtils.mkdtemp( "minderXXXXXX" );
-
-    stdout.printf( "In XMind2021 import, dir: %s\n", dir );
+    var dir = Utils.make_temp_dir( "minder-xmind" );
+    if( dir == null ) {
+      return( false );
+    }
 
     // Unarchive the files
     unarchive_contents( fname, dir );
-
-    stdout.printf( "After unarchiving contents, dir: %s\n", dir );
 
     var content = Path.build_filename( dir, "content.json" );
     var id_map  = new HashMap<string,IdObject>();
 
     if( !FileUtils.test( content, FileTest.EXISTS ) ) {
+      Utils.remove_tree( dir );
       return( false );
     }
 
     import_content( map, content, dir, id_map );
+
+    Utils.remove_tree( dir );
 
     // Update the drawing area and save the result
     map.queue_draw();
