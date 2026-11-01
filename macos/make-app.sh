@@ -106,15 +106,31 @@ exec "${here}/io.github.phase1geo.minder" "$@"
 LAUNCHER
 chmod +x "${contents}/MacOS/Minder"
 
-icon_svg="${repo}/data/icons/scalable/${app_id}.svg"
-iconset="${out}/Minder.iconset"
-rm -rf "${iconset}"
-mkdir -p "${iconset}"
-for size in 16 32 128 256 512; do
-  rsvg-convert -w "${size}" -h "${size}" "${icon_svg}" -o "${iconset}/icon_${size}x${size}.png"
-  rsvg-convert -w "$((size * 2))" -h "$((size * 2))" "${icon_svg}" -o "${iconset}/icon_${size}x${size}@2x.png"
-done
-iconutil -c icns "${iconset}" -o "${res}/Minder.icns"
+# Build the application and document icons.  rsvg will not load images from
+# outside an SVG's own directory, so inline the shared bubble artwork first.
+bubble="${repo}/data/icons/scalable/${app_id}.svg"
+bubble_b64="$(base64 < "${bubble}" | tr -d '\n')"
+icon_tmp="${out}/icons"
+rm -rf "${icon_tmp}"
+mkdir -p "${icon_tmp}"
+
+make_icns() {
+  local name="${1}" icns="${2}"
+  local svg="${icon_tmp}/${name}.svg"
+  local iconset="${icon_tmp}/${name}.iconset"
+  sed "s|../../data/icons/scalable/${app_id}.svg|data:image/svg+xml;base64,${bubble_b64}|" \
+    "${repo}/macos/icons/${name}.svg" > "${svg}"
+  mkdir -p "${iconset}"
+  local size
+  for size in 16 32 128 256 512; do
+    rsvg-convert -w "${size}" -h "${size}" "${svg}" -o "${iconset}/icon_${size}x${size}.png"
+    rsvg-convert -w "$((size * 2))" -h "$((size * 2))" "${svg}" -o "${iconset}/icon_${size}x${size}@2x.png"
+  done
+  iconutil -c icns "${iconset}" -o "${icns}"
+}
+
+make_icns AppIcon  "${res}/Minder.icns"
+make_icns Document "${res}/MinderDocument.icns"
 
 cat > "${contents}/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
@@ -130,6 +146,34 @@ cat > "${contents}/Info.plist" <<PLIST
   <key>CFBundleIconFile</key><string>Minder</string>
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>NSHighResolutionCapable</key><true/>
+  <key>CFBundleDocumentTypes</key>
+  <array>
+    <dict>
+      <key>CFBundleTypeName</key><string>Minder Mind Map</string>
+      <key>CFBundleTypeRole</key><string>Editor</string>
+      <key>LSHandlerRank</key><string>Owner</string>
+      <key>LSItemContentTypes</key>
+      <array><string>io.github.phase1geo.minder.document</string></array>
+      <key>CFBundleTypeIconFile</key><string>MinderDocument</string>
+    </dict>
+  </array>
+  <key>UTExportedTypeDeclarations</key>
+  <array>
+    <dict>
+      <key>UTTypeIdentifier</key><string>io.github.phase1geo.minder.document</string>
+      <key>UTTypeDescription</key><string>Minder Mind Map</string>
+      <key>UTTypeConformsTo</key>
+      <array><string>public.data</string></array>
+      <key>UTTypeIconFile</key><string>MinderDocument</string>
+      <key>UTTypeTagSpecification</key>
+      <dict>
+        <key>public.filename-extension</key>
+        <array><string>minder</string></array>
+        <key>public.mime-type</key>
+        <array><string>application/io.github.phase1geo.minder</string></array>
+      </dict>
+    </dict>
+  </array>
   <key>LSMinimumSystemVersion</key><string>13.0</string>
 </dict>
 </plist>
