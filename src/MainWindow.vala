@@ -480,12 +480,21 @@ public class MainWindow : Gtk.ApplicationWindow {
     return( da.mmap );
   }
 
+#if PRIMARY_COMMAND
+  // macOS puts a tab's close button on its left: close, lock, label
+  private const int TAB_LOCK_INDEX  = 1;
+  private const int TAB_LABEL_INDEX = 2;
+#else
+  private const int TAB_LOCK_INDEX  = 0;
+  private const int TAB_LABEL_INDEX = 1;
+#endif
+
   //-------------------------------------------------------------
   // Returns the tab label associated with the given notebook page.
   private string get_tab_label_name( int page_num ) {
     var page = _nb.get_nth_page( page_num );
     var tab  = _nb.get_tab_label( page );
-    var label = (Label)Utils.get_child_at_index( tab, 1 );
+    var label = (Label)Utils.get_child_at_index( tab, TAB_LABEL_INDEX );
     return( label.label );
   }
 
@@ -494,8 +503,8 @@ public class MainWindow : Gtk.ApplicationWindow {
   private void set_tab_label_info( int page_num, bool editable, string label, string tooltip ) {
     var page = _nb.get_nth_page( page_num );
     var tab  = _nb.get_tab_label( page );
-    var lock = (Image)Utils.get_child_at_index( tab, 0 );
-    var lbl  = (Label)Utils.get_child_at_index( tab, 1 );
+    var lock = (Image)Utils.get_child_at_index( tab, TAB_LOCK_INDEX );
+    var lbl  = (Label)Utils.get_child_at_index( tab, TAB_LABEL_INDEX );
     @lock.visible    = !editable;
     lbl.label        = label;
     lbl.tooltip_text = tooltip;
@@ -729,7 +738,11 @@ public class MainWindow : Gtk.ApplicationWindow {
 
     var tab_close = new Button.from_icon_name( "window-close-symbolic" ) {
       has_frame     = false,
+#if PRIMARY_COMMAND
+      margin_start  = 10,
+#else
       margin_end    = 10,
+#endif
       margin_top    = 5,
       margin_bottom = 5
     };
@@ -740,16 +753,26 @@ public class MainWindow : Gtk.ApplicationWindow {
     });
 
     var tab_revealer = new Revealer() {
+#if PRIMARY_COMMAND
+      halign          = Align.START,
+#else
       halign          = Align.END,
+#endif
       reveal_child    = true,
       transition_type = RevealerTransitionType.CROSSFADE,
       child           = tab_close
     };
 
     var tab_box = new Box( Orientation.HORIZONTAL, 5 );
+#if PRIMARY_COMMAND
+    tab_box.append( tab_revealer );
+    tab_box.append( tab_lock );
+    tab_box.append( tab_label );
+#else
     tab_box.append( tab_lock );
     tab_box.append( tab_label );
     tab_box.append( tab_revealer );
+#endif
 
     var tab_motion = new EventControllerMotion();
     tab_box.add_controller( tab_motion );
