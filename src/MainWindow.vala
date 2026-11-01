@@ -582,6 +582,18 @@ public class MainWindow : Gtk.ApplicationWindow {
   }
 
   //-------------------------------------------------------------
+  // Returns the position of the tab holding the map, or the current tab if
+  // the map is no longer in the notebook.
+  private int page_of( MindMap map ) {
+    for( int i=0; i<_nb.get_n_pages(); i++ ) {
+      if( get_map( i ) == map ) {
+        return( i );
+      }
+    }
+    return( _nb.page );
+  }
+
+  //-------------------------------------------------------------
   // Removes the specified tab from the notebook.  If this leaves
   // the notebook in an empty state, add a blank tab.
   private void remove_tab( int? page_num ) {
@@ -702,12 +714,18 @@ public class MainWindow : Gtk.ApplicationWindow {
     tab_motion.enter.connect((x, y) => {
       tab_revealer.reveal_child = true; // (_nb.get_n_pages() > 1);
     });
+    // Tabs move when others are closed or reordered, so look the position up
+    // when it is needed instead of remembering the one it was added at
+    unowned Widget tab_page = overlay;
     tab_motion.leave.connect(() => {
-      tab_revealer.reveal_child = (_nb.page == tab_index);
+      tab_revealer.reveal_child = (_nb.page_num( tab_page ) == _nb.page);
     });
 
     tab_close.clicked.connect(() => {
-      close_tab( tab_index );
+      var index = _nb.page_num( tab_page );
+      if( index >= 0 ) {
+        close_tab( index );
+      }
     });
 
     // Update the titlebar
@@ -1733,9 +1751,10 @@ public class MainWindow : Gtk.ApplicationWindow {
           save_file( map, true );
           break;
         case ResponseType.CLOSE  :  
+          var page = page_of( map );
           map.close();
           map.doc.remove();
-          remove_tab( null );
+          remove_tab( page );
           break;
       }
       dialog.close();
@@ -2046,8 +2065,9 @@ public class MainWindow : Gtk.ApplicationWindow {
           map.doc.filename = fname;
           map.doc.save();
           if( remove_after_save ) {
+            var page = page_of( map );
             map.close();
-            remove_tab( null );
+            remove_tab( page );
           } else {
             set_tab_label_info( _nb.page, map.editable, map.doc.label, fname );
             update_title( map );
