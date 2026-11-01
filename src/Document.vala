@@ -273,7 +273,7 @@ public class Document : Object {
     unowned Archive.Entry entry;
 
     while( archive.next_header( out entry ) == Archive.Result.OK ) {
-      if( entry.pathname() == "map.xml" ) {
+      if( (entry.pathname() == "map.xml") && (entry.size() <= ArchiveSafety.MAX_XML_BYTES) ) {
         // One extra byte so that the buffer is a valid NUL-terminated string
         uint8[] data = new uint8[entry.size() + 1];
         if( archive.read_data( data[0:entry.size()] ) > 0 ) {
@@ -366,11 +366,7 @@ public class Document : Object {
     archive.support_filter_gzip();
     archive.support_format_all();
 
-    Archive.ExtractFlags flags;
-    flags  = Archive.ExtractFlags.TIME;
-    flags |= Archive.ExtractFlags.PERM;
-    flags |= Archive.ExtractFlags.ACL;
-    flags |= Archive.ExtractFlags.FFLAGS;
+    var flags = ArchiveSafety.extract_flags();
 
     Archive.WriteDisk extractor = new Archive.WriteDisk();
     extractor.set_options( flags );
@@ -391,6 +387,11 @@ public class Document : Object {
     unowned Archive.Entry entry;
 
     while( archive.next_header( out entry ) == Archive.Result.OK ) {
+
+      // Skip links and names that would leave the image folder
+      if( !ArchiveSafety.is_safe_entry( entry ) ) {
+        continue;
+      }
 
       // We will need to modify the entry pathname so the file is written to the
       // proper location.

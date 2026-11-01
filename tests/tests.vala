@@ -227,6 +227,7 @@ public static int main (string[] args) {
   Test.init( ref args );
 
   var tests = new MinderTest.TestRunner ();
+  tests.add( new MinderTest.ArchiveSafetyTest() );
   tests.add( new MinderTest.ExampleTest() );
   tests.add( new MinderTest.ImageManagerTest() );
   tests.add( new MinderTest.LatexSpanParserTest() );
