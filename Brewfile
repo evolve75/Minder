@@ -32,4 +32,5 @@ brew "discount"
 brew "dylibbundler"
 
 # Deliberately absent: granite-7 (shimmed), webkitgtk-6.0 (no macOS build),
-# lasem-0.6 (LaTeX compiled out first). See ASSESSMENT.md decisions.
+# lasem-0.6 (not in Homebrew: macos/build-lasem.sh builds it for -Dlatex=true).
+# See ASSESSMENT.md decisions.
