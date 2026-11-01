@@ -131,7 +131,7 @@ public class Minder : Gtk.Application {
     string? cl_export = null;
 
     var context      = new OptionContext( "[files]" );
-    var options      = new OptionEntry[10];
+    var options      = new OptionEntry[11];
     var transparent  = false;
     var compression  = 0;
     var quality      = 90;
@@ -142,6 +142,7 @@ public class Minder : Gtk.Application {
     var show_version = false;
     var show_help    = false;
     var new_file     = false;
+    var benchmark    = false;
 
     // Get the list of import and export formats
     for( int i=0; i<exports.length(); i++ ) {
@@ -169,7 +170,8 @@ public class Minder : Gtk.Application {
     options[6] = {"png-compression", 0, 0, OptionArg.INT, ref compression,  _( "PNG compression value (0-9). Default is 0." ), "INT"};
     options[7] = {"jpeg-quality", 0, 0, OptionArg.INT, ref quality, _( "JPEG quality (0-100). Default is 90." ), "INT"};
     options[8] = {"markdown-include-image-links", 0, 0, OptionArg.NONE, ref image_links, _( "Enables image links in exported Markdown" ), null};
-    options[9] = {null};
+    options[9] = {"benchmark", 0, OptionFlags.HIDDEN, OptionArg.NONE, ref benchmark, _( "Time the canvas drawing on the given file and exit" ), null};
+    options[10] = {null};
 
     // Add some description for importing and exporting
     var description_prefix = (Utils.get_flatpak_runtime() != "") ? "flatpak run " : "";
@@ -255,6 +257,14 @@ public class Minder : Gtk.Application {
         }
       }
       appwin.present();
+      if( benchmark ) {
+        // Let the window map and lay out first, then time the drawing
+        Timeout.add( 1500, () => {
+          Benchmark.run( appwin );
+          quit();
+          return( Source.REMOVE );
+        });
+      }
     } else {
       appwin.present();
     }
