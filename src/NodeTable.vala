@@ -876,11 +876,10 @@ public class NodeTable : Object {
         output += "|";
         for( int column=0; column<columns; column++ ) {
           var cell = cell_at( row, column );
-          switch( cell.alignment ) {
-            case Pango.Alignment.LEFT   :  output += " :--- |";  break;
+          switch( (cell != null) ? cell.alignment : Pango.Alignment.LEFT ) {
             case Pango.Alignment.CENTER :  output += " :---: |";  break;
             case Pango.Alignment.RIGHT  :  output += " ---: |";  break;
-            default                     :  assert_not_reached();
+            default                     :  output += " :--- |";  break;
           }
         }
         output += "\n";
