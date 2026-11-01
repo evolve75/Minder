@@ -31,6 +31,8 @@ namespace MacosWindow {
   public void note_recent_document( string path );
   [CCode (cname = "minder_macos_clear_recent_documents")]
   public void clear_recent_documents();
+  [CCode (cname = "minder_macos_window_set_titlebar_height")]
+  public void set_titlebar_height( Gtk.Window window, int height );
   [CCode (cname = "minder_macos_window_set_edited")]
   public void set_edited( Gtk.Window window, bool edited );
   [CCode (cname = "MinderDockSelectFunc", has_target = true, simple_generics = true)]

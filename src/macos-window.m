@@ -26,6 +26,37 @@
 #include "macos-window.h"
 #import <objc/runtime.h>
 
+/* Height of GTK's header bar, in points.  The titlebar is made this tall and
+ * the buttons are centred in it, so they line up with the toolbar items. */
+static int header_height = 0;
+
+static void
+center_standard_buttons (NSWindow *win)
+{
+  if (header_height <= 0)
+    return;
+
+  NSView *titlebar  = [[win standardWindowButton: NSWindowCloseButton] superview];
+  NSView *container = [titlebar superview];
+  NSView *frame     = [container superview];
+  if (titlebar == nil || container == nil || frame == nil)
+    return;
+
+  NSRect rect = [container frame];
+  rect.size.height = header_height;
+  rect.origin.y    = [frame bounds].size.height - header_height;
+  [container setFrame: rect];
+  [titlebar setFrame: [container bounds]];
+
+  NSWindowButton buttons[] = { NSWindowCloseButton, NSWindowMiniaturizeButton, NSWindowZoomButton };
+  for (int i = 0; i < 3; i++)
+    {
+      NSButton *button = [win standardWindowButton: buttons[i]];
+      NSRect    f      = [button frame];
+      [button setFrameOrigin: NSMakePoint (f.origin.x, ([titlebar bounds].size.height - f.size.height) / 2)];
+    }
+}
+
 /* GDK hides the standard buttons of its borderless windows, and does so again
  * whenever the window changes state, so show them after each such change. */
 static void
@@ -41,6 +72,7 @@ show_standard_buttons (NSWindow *win)
       [button setHidden: NO];
       [button setAlphaValue: 1.0];
     }
+  center_standard_buttons (win);
 }
 
 gboolean
@@ -218,4 +250,18 @@ minder_macos_set_dock_handler (MinderDockSelectFunc callback, gpointer user_data
   IMP imp = imp_implementationWithBlock (block);
   if (!class_addMethod ([delegate class], sel, imp, "@@:@"))
     class_replaceMethod ([delegate class], sel, imp, "@@:@");
+}
+
+void
+minder_macos_window_set_titlebar_height (GtkWindow *window, int height)
+{
+  GtkNative  *native  = GTK_NATIVE (window);
+  GdkSurface *surface = (native != NULL) ? gtk_native_get_surface (native) : NULL;
+  if (surface == NULL || !GDK_IS_MACOS_SURFACE (surface))
+    return;
+  NSWindow *win = (__bridge NSWindow *) gdk_macos_surface_get_native_window (GDK_MACOS_SURFACE (surface));
+  if (win == nil)
+    return;
+  header_height = height;
+  show_standard_buttons (win);
 }
