@@ -5,9 +5,9 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/evolve75/Minder/actions/workflows/ci.yml"><img src="https://github.com/evolve75/Minder/actions/workflows/ci.yml/badge.svg?branch=features/macos-port" alt="CI (Linux flatpak)" /></a>
-  <a href="https://github.com/evolve75/Minder/actions/workflows/macos.yml"><img src="https://github.com/evolve75/Minder/actions/workflows/macos.yml/badge.svg?branch=features/macos-port" alt="macOS build" /></a>
-  <a href="https://github.com/evolve75/Minder/actions/workflows/main.yml"><img src="https://github.com/evolve75/Minder/actions/workflows/main.yml/badge.svg?branch=features/macos-port" alt="Vala Linter" /></a>
+  <a href="https://github.com/evolve75/Minder/actions/workflows/ci.yml"><img src="https://github.com/evolve75/Minder/actions/workflows/ci.yml/badge.svg?branch=master" alt="CI (Linux flatpak)" /></a>
+  <a href="https://github.com/evolve75/Minder/actions/workflows/macos.yml"><img src="https://github.com/evolve75/Minder/actions/workflows/macos.yml/badge.svg?branch=master" alt="macOS build" /></a>
+  <a href="https://github.com/evolve75/Minder/actions/workflows/main.yml"><img src="https://github.com/evolve75/Minder/actions/workflows/main.yml/badge.svg?branch=master" alt="Vala Linter" /></a>
 </p>
 
 ![<center><b>Main Window - Light Theme</b></center>](https://raw.githubusercontent.com/phase1geo/Minder/master/data/screenshots/screenshot-current-properties.png "Mind-mapping application for Elementary OS")
