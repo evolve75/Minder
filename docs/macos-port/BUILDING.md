@@ -19,7 +19,9 @@ open build-app/Minder.app
 
 The bundle contains the binary, its Homebrew dylibs (via `dylibbundler`), the
 gdk-pixbuf loaders, GtkSourceView data, the Adwaita icon theme and compiled
-GSettings schemas. The launcher points `XDG_DATA_DIRS`, `GSETTINGS_SCHEMA_DIR`
+GSettings schemas, plus a registered `.minder` document type (Finder opens files with
+Minder and shows a document icon). Icons are built from `macos/icons/*.svg` and the shared
+bubble artwork. The launcher points `XDG_DATA_DIRS`, `GSETTINGS_SCHEMA_DIR`
 and `GDK_PIXBUF_MODULE_FILE` at the bundle. It is not signed or notarized.
 
 ## Build options
