@@ -144,6 +144,7 @@ public class Document : Object {
   public signal void save_changed();
 
   private string? _disk_stamp = null;   // Stamp of the file on disk when we last read or wrote it
+  private bool    _recovery_dirty = false;  // The map changed since its recovery copy was written
   public signal void read_only_changed();
 
   //-------------------------------------------------------------
@@ -190,7 +191,8 @@ public class Document : Object {
   // needed
   private void canvas_changed() {
     var call_save_changed = !_save_needed;
-    _save_needed = true;
+    _save_needed    = true;
+    _recovery_dirty = true;
     auto_save();
     if( call_save_changed ) {
       save_changed();
@@ -514,10 +516,12 @@ public class Document : Object {
   // itself and its saved/unsaved state are not touched; after a crash the copy
   // is picked up the next time the document is opened.
   public void write_recovery() {
-    if( !_save_needed || !_map.editable ) return;
+    if( !_save_needed || !_map.editable || !_recovery_dirty ) return;
     DirUtils.create_with_parents( get_unsaved_dir(), 0775 );
-    save_xml_internal( get_map_file(), false );
-    write_archive( recovery_file() );
+    // Never write a recovery copy without the map in it
+    if( save_xml_internal( get_map_file(), false ) && write_archive( recovery_file() ) ) {
+      _recovery_dirty = false;
+    }
   }
 
   //-------------------------------------------------------------
@@ -571,8 +575,15 @@ public class Document : Object {
       backed = true;
     }
 
-    // Save the XML file before we do everything else
-    save_xml();
+    // Save the XML file before we do everything else.  An archive without the map in
+    // it must never replace the user's file.
+    if( !save_xml() ) {
+      stderr.printf( "WARNING: Unable to write the map for '%s'\n", filename );
+      if( !quiet ) {
+        _map.win.show_save_failed( _map );
+      }
+      return( false );
+    }
 
     // Create the tar.gz archive named according the the first argument.  If it
     // cannot be written (the folder is gone, the volume is unmounted, ...), the
@@ -605,35 +616,63 @@ public class Document : Object {
   }
 
   //-------------------------------------------------------------
-  // Writes the document (map file and images) as a tar.gz archive to dest.
-  // Returns false if the archive could not be written.
-  private bool write_archive( string dest ) {
+  // Writes the document (map file and images) as a tar.gz archive to dest.  The
+  // archive is built next to dest and renamed into place, so a failure part way
+  // never leaves a truncated or map-less file where a good one was.  Returns false
+  // if the archive could not be written.
+  private bool write_archive( string dest_name ) {
+
+    // Write through a symbolic link, not over it
+    var dest = dest_name;
+    for( int i=0; i<10 && FileUtils.test( dest, FileTest.IS_SYMLINK ); i++ ) {
+      try {
+        var target = FileUtils.read_link( dest );
+        dest = GLib.Path.is_absolute( target ) ? target : GLib.Path.build_filename( GLib.Path.get_dirname( dest ), target );
+      } catch( FileError e ) {
+        break;
+      }
+    }
+
+    var tmp = dest + ".tmp";
 
     Archive.Write archive = new Archive.Write ();
     archive.add_filter_gzip();
     archive.set_format_pax_restricted();
-    if( archive.open_filename( dest ) != Archive.Result.OK ) {
-      warning( "Unable to create '%s': %s", dest, archive.error_string() );
+    if( archive.open_filename( tmp ) != Archive.Result.OK ) {
+      warning( "Unable to create '%s': %s", tmp, archive.error_string() );
       return( false );
     }
 
     // Add the Minder file to the archive
-    archive_file( archive, get_map_file() );
+    var ok = archive_file( archive, get_map_file() );
 
     // Add the images
-    var image_ids = _map.image_manager.get_ids();
-    for( int i=0; i<image_ids.length; i++ ) {
-      var id = image_ids.index( i );
-      archive_file( archive, _map.image_manager.get_file( id ), id );
+    if( ok ) {
+      var image_ids = _map.image_manager.get_ids();
+      for( int i=0; i<image_ids.length; i++ ) {
+        var id = image_ids.index( i );
+        if( !archive_file( archive, _map.image_manager.get_file( id ), id ) ) {
+          warning( "Unable to add image %d to '%s'", id, dest );
+        }
+      }
     }
 
     // Close the archive
     if( archive.close() != Archive.Result.OK ) {
-      warning( "Unable to write '%s': %s (%d)", dest, archive.error_string(), archive.errno() );
-      return( false );
+      warning( "Unable to write '%s': %s (%d)", tmp, archive.error_string(), archive.errno() );
+      ok = false;
     }
 
-    return( true );
+    if( ok && (FileUtils.rename( tmp, dest ) != 0) ) {
+      warning( "Unable to move '%s' to '%s'", tmp, dest );
+      ok = false;
+    }
+
+    if( !ok ) {
+      FileUtils.unlink( tmp );
+    }
+
+    return( ok );
 
   }
 
@@ -898,17 +937,25 @@ public class Document : Object {
     // Force the save to occur.  There is nobody to ask while quitting, so if the
     // file was changed by someone else, keep their version and store ours next to it.
     if( _save_needed ) {
-      if( externally_modified() ) {
+      var original = _filename;
+      var conflict = externally_modified();
+      if( conflict ) {
         var stamp = (new DateTime.now_local()).format( "%Y%m%d-%H%M%S" );
-        var stem  = filename.has_suffix( ".minder" ) ? filename.substring( 0, filename.length - 7 ) : filename;
-        filename  = "%s-conflict-%s.minder".printf( stem, stamp );
+        var stem  = _filename.has_suffix( ".minder" ) ? _filename.substring( 0, _filename.length - 7 ) : _filename;
+        _filename = "%s-conflict-%s.minder".printf( stem, stamp );
       }
-      if( !save( true, true ) ) {
-        // Keep the work in the recovery copy rather than losing it
+      var saved = save( true, true );
+      _filename = original;
+      if( !saved ) {
+        // Keep the work in the recovery copy, which belongs to the original file
         write_recovery();
         stderr.printf( "WARNING: Unsaved changes were kept in '%s'\n", recovery_file() );
         remove_temp_dir();
         return;
+      }
+      if( conflict ) {
+        // The conflict copy holds our version; the original's recovery copy is stale
+        remove_recovery();
       }
     }
     remove_recovery();
