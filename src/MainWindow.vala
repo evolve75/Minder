@@ -2107,8 +2107,11 @@ public class MainWindow : Gtk.ApplicationWindow {
             fname += ".minder";
           }
           map.doc.filename = fname;
-          map.doc.save();
-          if( remove_after_save ) {
+          var saved = map.doc.save();
+          if( !saved ) {
+            // The error dialog is up; keep the tab, and its changes, open
+            map.canvas.grab_focus();
+          } else if( remove_after_save ) {
             var page = page_of( map );
             map.close();
             remove_tab( page );
