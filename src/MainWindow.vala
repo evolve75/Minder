@@ -2468,6 +2468,7 @@ public class MainWindow : Gtk.ApplicationWindow {
     Idle.add(() => {
       if( !fullscreened ) {
         MacosWindow.use_native_controls( this );
+        MacosWindow.set_titlebar_height( this, _header.get_height() );
       }
       return( Source.REMOVE );
     });
