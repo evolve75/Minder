@@ -30,4 +30,11 @@ for _pkg in libarchive libxml2; do
     export PKG_CONFIG_PATH="${_dir}${PKG_CONFIG_PATH:+:${PKG_CONFIG_PATH}}"
   fi
 done
-unset _brew_prefix _pkg _dir
+
+# Lasem (LaTeX formulas), built by macos/build-lasem.sh, is not in Homebrew
+_deps="${MINDER_DEPS_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")/.." && pwd)/build-deps}"
+if [[ -d "${_deps}/prefix/lib/pkgconfig" ]]; then
+  export PKG_CONFIG_PATH="${_deps}/prefix/lib/pkgconfig${PKG_CONFIG_PATH:+:${PKG_CONFIG_PATH}}"
+  export MINDER_LASEM_LIB="${_deps}/prefix/lib"
+fi
+unset _brew_prefix _pkg _dir _deps
