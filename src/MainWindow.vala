@@ -641,6 +641,7 @@ public class MainWindow : Gtk.ApplicationWindow {
     if( _nb.get_n_pages() == 0 ) {
       add_tab( null, TabAddReason.NEW );
     }
+    update_title( get_current_map() );
   }
 
   //-------------------------------------------------------------
