@@ -31,7 +31,7 @@ public class Minder : Gtk.Application {
   public  const bool   force_startup_notes = true;
 
   private MainWindow    appwin;
-  private GLib.Settings iface_settings;
+  private GLib.Settings? iface_settings = null;
 
   public static GLib.Settings settings;
   public static bool          debug          = false;
@@ -92,15 +92,19 @@ public class Minder : Gtk.Application {
     });
 
     // Initialize desktop interface settings
-    string[] names = {"font-name", "text-scaling-factor"};
-    iface_settings = new GLib.Settings( INTERFACE_SCHEMA );
-    foreach( string name in names ) {
-      iface_settings.changed[name].connect(() => {
-        Timeout.add( 500, () => {
-          appwin.update_node_sizes();
-          return( Source.REMOVE );
+    // (the GNOME schema is absent on non-GNOME platforms such as macOS)
+    var schema_source = SettingsSchemaSource.get_default();
+    if( (schema_source != null) && (schema_source.lookup( INTERFACE_SCHEMA, true ) != null) ) {
+      string[] names = {"font-name", "text-scaling-factor"};
+      iface_settings = new GLib.Settings( INTERFACE_SCHEMA );
+      foreach( string name in names ) {
+        iface_settings.changed[name].connect(() => {
+          Timeout.add( 500, () => {
+            appwin.update_node_sizes();
+            return( Source.REMOVE );
+          });
         });
-      });
+      }
     }
 
   }
