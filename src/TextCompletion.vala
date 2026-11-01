@@ -77,7 +77,7 @@ public class TextCompletionItem {
 
 public class TextCompletion {
 
-  private MindMap    _map;
+  private weak MindMap    _map;
   private CanvasText _ct;
   private ListBox    _list;
   private bool       _shown     = false;

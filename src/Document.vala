@@ -84,7 +84,7 @@ public delegate void AfterLoadFunc( bool loaded, string msg );
 
 public class Document : Object {
 
-  private MindMap _map;
+  private weak MindMap _map;
   private string  _filename;
   private string  _temp_dir;
   private bool    _from_user;  // Set to true if _filename was set by the user

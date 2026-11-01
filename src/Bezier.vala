@@ -24,7 +24,7 @@ using GLib.Math;
 public class Bezier {
 
   private class Point {
-    private MindMap _map;
+    private weak MindMap _map;
     private double  _x = 0;
     private double  _y = 0;
 

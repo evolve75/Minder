@@ -156,7 +156,7 @@ public class TableEditor {
   private const int MAX_UNDO_STATES = 50;
   private const int POPOVER_PAD = 20;   // Room for the popover arrow and shadow
 
-  private DrawArea _draw_area;
+  private weak DrawArea _draw_area;
   private Popover _popover;
   private Grid _grid;
   private Button _undo_button;

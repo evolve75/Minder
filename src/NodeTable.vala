@@ -33,7 +33,7 @@ public enum NodeTableFormat {
 
 public class NodeTableCell : NodeTableRegion {
 
-  private MindMap _map;
+  private weak MindMap _map;
   private int _font_size = 12;
   private FormattedText _formatted;
   private LatexRenderer _latex;
@@ -221,7 +221,7 @@ public class NodeTable : Object {
   private const double MIN_ROW_HEIGHT   = 28.0;
   private const double MAX_CELL_WIDTH   = 220.0;
   private const double CELL_PADDING     = 6.0;
-  private MindMap _map;
+  private weak MindMap _map;
   private Array<NodeTableCell> _cells;
   private double[] _column_widths;
   private double[] _row_heights;

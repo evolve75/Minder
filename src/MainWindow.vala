@@ -585,10 +585,24 @@ public class MainWindow : Gtk.ApplicationWindow {
   // Removes the specified tab from the notebook.  If this leaves
   // the notebook in an empty state, add a blank tab.
   private void remove_tab( int? page_num ) {
-    _nb.detach_tab( _nb.get_nth_page( page_num ?? _nb.page ) );
+    release_tab( page_num ?? _nb.page );
     if( _nb.get_n_pages() == 0 ) {
       add_tab( null, TabAddReason.NEW );
     }
+  }
+
+  //-------------------------------------------------------------
+  // Takes the tab out of the notebook and releases everything it holds, so that
+  // its memory is freed.  The map is not a GObject, so its connections to the
+  // objects it owns must be dropped explicitly, and the canvas's reference to
+  // the map (the tab's owner link) released.
+  private void release_tab( int page_num ) {
+    var page = _nb.get_nth_page( page_num );
+    var map  = get_map( page_num );
+    map.disconnect_handlers();
+    var canvas = map.canvas;
+    _nb.detach_tab( page );
+    canvas.release_map();
   }
 
   //-------------------------------------------------------------
@@ -619,7 +633,10 @@ public class MainWindow : Gtk.ApplicationWindow {
     map.undo_text.buffer_changed.connect( do_buffer_changed );
     // map.theme_changed.connect( on_theme_changed );
     map.editable_changed.connect( on_editable_changed );
-    map.highlighted.changed.connect(() => { on_tag_highlight_changed( map ); });
+    // The closures below are stored on objects the map owns; capturing the map
+    // itself would make a reference cycle that keeps every closed tab alive
+    unowned MindMap weak_map = map;
+    map.highlighted.changed.connect(() => { on_tag_highlight_changed( weak_map ); });
     map.animator.enable = _settings.get_boolean( "enable-animations" );
 
     if( fname != null ) {
@@ -660,7 +677,7 @@ public class MainWindow : Gtk.ApplicationWindow {
     tab_close.add_css_class( "tab" );
 
     map.doc.save_changed.connect(() => {
-      tab_close.icon_name = (map.doc.save_needed ? "media-record-symbolic" : "window-close-symbolic" );
+      tab_close.icon_name = (weak_map.doc.save_needed ? "media-record-symbolic" : "window-close-symbolic" );
     });
 
     var tab_revealer = new Revealer() {
@@ -722,7 +739,7 @@ public class MainWindow : Gtk.ApplicationWindow {
     for( int i=0; i<_nb.get_n_pages(); i++ ) {
       var map = get_map( i );
       if( !map.model.is_loaded ) {
-        _nb.detach_tab( _nb.get_nth_page( i ) );
+        release_tab( i );
         return;
       }
     }

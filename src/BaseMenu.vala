@@ -22,7 +22,7 @@
 public class BaseMenu {
 
   private Gtk.Application   _app;
-  private MindMap           _map;
+  private weak MindMap           _map;
   private string            _group_name;
   private SimpleActionGroup _group;
   private Gtk.PopoverMenu   _popover;
@@ -62,6 +62,13 @@ public class BaseMenu {
     _popover.set_parent( canvas );
     _popover.closed.connect( on_popdown );
 
+  }
+
+  //-------------------------------------------------------------
+  // Stops listening to the window's shortcuts.  The window outlives the map, so
+  // while this stays connected the window keeps the menu (and its canvas) alive.
+  public void release() {
+    _map.win.shortcuts.shortcut_changed.disconnect( handle_shortcut_change );
   }
 
   //-------------------------------------------------------------
