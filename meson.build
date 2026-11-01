@@ -74,7 +74,6 @@ dependencies = [
     dependency('gtksourceview-5'),
     dependency('json-glib-1.0'),
     dependency('libwebp'),
-    dependency('webkitgtk-6.0'),
     libmarkdown,
     librsvg,
     math_dep
@@ -91,6 +90,15 @@ if get_option('granite')
 else
   dependencies += dependency('libadwaita-1', version: '>=1.2')
   sources += files('src/compat/Granite.vala')
+endif
+
+use_webkit = get_option('webkit')
+if use_webkit == 'auto'
+  use_webkit = (host_machine.system() == 'darwin') ? 'false' : 'true'
+endif
+if use_webkit == 'true'
+  dependencies += dependency('webkitgtk-6.0')
+  add_project_arguments(['--define=WEBKIT'], language: 'vala')
 endif
 
 if get_option('latex')

@@ -23,7 +23,9 @@ using Gtk;
 
 public class ReleaseNotes : Granite.Dialog {
 
+#if WEBKIT
   private WebKit.WebView _viewer;
+#endif
   private Array<string>  _notes;
   private bool           _on_startup   = false;
   private int            _max_releases = 10;
@@ -42,6 +44,7 @@ public class ReleaseNotes : Granite.Dialog {
 
     _notes = new Array<string>();
 
+#if WEBKIT
     var settings = new WebKit.Settings() {
       enable_javascript                     = false,
       allow_file_access_from_file_urls      = true,
@@ -66,6 +69,7 @@ public class ReleaseNotes : Granite.Dialog {
     box.append( _viewer );
 
     get_content_area().append( box );
+#endif
 
     var close_button = (Gtk.Button)add_button( _("Close"), Gtk.ResponseType.CLOSE );
     close_button.clicked.connect(() => {
@@ -96,7 +100,9 @@ public class ReleaseNotes : Granite.Dialog {
     load_xml( last_release );
 
     // Present the window
+#if WEBKIT
     present();
+#endif
 
   }
 
@@ -110,7 +116,9 @@ public class ReleaseNotes : Granite.Dialog {
     load_xml( "" );
 
     // Present the window
+#if WEBKIT
     present();
+#endif
 
   }
 
@@ -127,7 +135,7 @@ public class ReleaseNotes : Granite.Dialog {
         string  etag_out;
         if( file.load_contents_async.end( res, out contents, out etag_out ) ) {
           parse_xml( (string)contents, last_version );
-          _viewer.load_html( make_html(), null );
+          show_html( make_html() );
         } else {
           stdout.printf( "ERROR: Unable to load resource file contents\n" );
         }
@@ -135,6 +143,26 @@ public class ReleaseNotes : Granite.Dialog {
         stdout.printf( "ERROR: %s\n", e.message );
       }
     });
+
+  }
+
+  //-------------------------------------------------------------
+  // Displays the generated HTML.  Without WebKit, the notes are written to a
+  // temporary file and opened in the system browser instead.
+  private void show_html( string html ) {
+
+#if WEBKIT
+    _viewer.load_html( html, null );
+#else
+    try {
+      var path = Path.build_filename( Environment.get_tmp_dir(), "minder-release-notes.html" );
+      FileUtils.set_contents( path, html );
+      AppInfo.launch_default_for_uri( File.new_for_path( path ).get_uri(), null );
+    } catch( Error e ) {
+      stdout.printf( "ERROR: %s\n", e.message );
+    }
+    destroy();
+#endif
 
   }
 
