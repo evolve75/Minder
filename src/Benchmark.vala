@@ -57,8 +57,40 @@ public class Benchmark {
     time_scenario( map, "hidpi",    1600, 1000, 2.0, 1.0 );
     time_scenario( map, "zoom-out", 1600, 1000, 1.0, 0.1 );
 
+    time_images();
+
     check_culling( map, 1.0 );
     check_culling( map, 0.1 );
+
+  }
+
+  //-------------------------------------------------------------
+  // Times painting a 300x200 raster image: rebuilding the Cairo surface on
+  // every draw (the old way) against the cached surface.
+  private static void time_images() {
+
+    var pixbuf  = new Gdk.Pixbuf( Gdk.Colorspace.RGB, true, 8, 300, 200 );
+    pixbuf.fill( 0x3080c0ff );
+    var surface = new ImageSurface( Format.ARGB32, 1600, 1000 );
+    var painter = new PixbufPainter();
+    const int DRAWS = 2000;
+
+    var start = GLib.get_monotonic_time();
+    for( int i=0; i<DRAWS; i++ ) {
+      var ctx = new Context( surface );
+      Gdk.cairo_set_source_pixbuf( ctx, pixbuf, (i % 50), 10 );
+      ctx.paint_with_alpha( 1.0 );
+    }
+    var old_ms = (GLib.get_monotonic_time() - start) / 1000.0;
+
+    start = GLib.get_monotonic_time();
+    for( int i=0; i<DRAWS; i++ ) {
+      painter.paint( new Context( surface ), pixbuf, (i % 50), 10, 1.0 );
+    }
+    var new_ms = (GLib.get_monotonic_time() - start) / 1000.0;
+
+    stdout.printf( "BENCH image-draw per-draw: rebuild=%.3f ms  cached=%.3f ms  (%d draws, 300x200)\n",
+                   old_ms / DRAWS, new_ms / DRAWS, DRAWS );
 
   }
 

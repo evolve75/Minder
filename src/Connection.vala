@@ -58,6 +58,7 @@ public class Connection : Object {
   private RGBA?       _color;
   private string?     _sticker     = null;
   private Pixbuf?     _sticker_buf = null;
+  private PixbufPainter _sticker_painter = new PixbufPainter();
   private double      _alpha       = 1.0;
 
   public CanvasText? title {
@@ -936,8 +937,7 @@ public class Connection : Object {
       sticker_bbox( out x, out y, out w, out h );
 
       // Draw sticker
-      cairo_set_source_pixbuf( ctx, _sticker_buf, x, y );
-      ctx.paint_with_alpha( alpha );
+      _sticker_painter.paint( ctx, _sticker_buf, x, y, alpha );
 
     }
 
