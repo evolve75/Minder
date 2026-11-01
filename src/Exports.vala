@@ -131,7 +131,7 @@ public class Exports {
   public void load() {
     var sfile = settings_file( false );
     if( (sfile == null) || !FileUtils.test( sfile, FileTest.EXISTS ) ) return;
-    Xml.Doc* doc = Xml.Parser.read_file( sfile, null, Xml.ParserOption.HUGE );
+    Xml.Doc* doc = XmlSafety.read_file( sfile );
     if( doc == null ) return;
     for( Xml.Node* it=doc->get_root_element()->children; it!=null; it=it->next ) {
       if( (it->type == Xml.ElementType.ELEMENT_NODE) && (it->name == "export") ) {
