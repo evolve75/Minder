@@ -435,6 +435,12 @@ public class MainWindow : Gtk.ApplicationWindow {
     // Load the templates
     _templates.load();
 
+#if PRIMARY_COMMAND
+    // Like other macOS apps, closing the window leaves Minder running; clicking
+    // the Dock icon shows the window again and Quit (Cmd-Q) exits
+    hide_on_close = true;
+#endif
+
     // Keep a recovery copy of every document with unsaved changes, so that a
     // crash or force-quit does not lose the work
     Timeout.add_seconds( RECOVERY_INTERVAL, () => {

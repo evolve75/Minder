@@ -37,6 +37,11 @@ G_BEGIN_DECLS
  * native counterpart yet (it must be realized). */
 gboolean minder_macos_window_use_native_controls (GtkWindow *window);
 
+/* Calls callback (user_data) when the user clicks the Dock icon (or reopens the
+ * app) while it has no visible window. */
+typedef void (*MinderReopenFunc) (gpointer user_data);
+void minder_macos_set_reopen_handler (MinderReopenFunc callback, gpointer user_data);
+
 G_END_DECLS
 
 #endif /* MINDER_MACOS_WINDOW_H */

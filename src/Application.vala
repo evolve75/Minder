@@ -107,6 +107,12 @@ public class Minder : Gtk.Application {
 #if PRIMARY_COMMAND
     load_stylesheet();
 #endif
+#if MACOS_WINDOW
+    // The window only hides when closed; the Dock icon shows it again
+    MacosWindow.set_reopen_handler(() => {
+      appwin.present();
+    });
+#endif
 
     // Create the main window
     appwin = new MainWindow( this, settings );
