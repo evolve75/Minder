@@ -51,6 +51,15 @@ void minder_macos_register_bundled_fonts (void);
 void minder_macos_note_recent_document (const char *path);
 void minder_macos_clear_recent_documents (void);
 
+/* Shows the window's native "edited" marker (the dot in the close button). */
+void minder_macos_window_set_edited (GtkWindow *window, gboolean edited);
+
+/* The Dock icon's menu: one entry per open tab, with a check on the current
+ * one.  Choosing an entry calls the handler with the tab's position. */
+typedef void (*MinderDockSelectFunc) (int index, gpointer user_data);
+void minder_macos_set_dock_handler (MinderDockSelectFunc callback, gpointer user_data);
+void minder_macos_set_dock_tabs (const char * const *titles, int n_titles, int current);
+
 G_END_DECLS
 
 #endif /* MINDER_MACOS_WINDOW_H */

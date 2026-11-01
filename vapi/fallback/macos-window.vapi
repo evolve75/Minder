@@ -31,6 +31,14 @@ namespace MacosWindow {
   public void note_recent_document( string path );
   [CCode (cname = "minder_macos_clear_recent_documents")]
   public void clear_recent_documents();
+  [CCode (cname = "minder_macos_window_set_edited")]
+  public void set_edited( Gtk.Window window, bool edited );
+  [CCode (cname = "MinderDockSelectFunc", has_target = true, simple_generics = true)]
+  public delegate void DockSelectFunc( int index );
+  [CCode (cname = "minder_macos_set_dock_handler")]
+  public void set_dock_handler( [CCode (delegate_target_pos = 1.1)] DockSelectFunc callback );
+  [CCode (cname = "minder_macos_set_dock_tabs")]
+  public void set_dock_tabs( [CCode (array_length_pos = 1.1)] string[] titles, int current );
   [CCode (cname = "MinderReopenFunc", has_target = true, simple_generics = true)]
   public delegate void ReopenFunc();
   [CCode (cname = "minder_macos_set_reopen_handler")]

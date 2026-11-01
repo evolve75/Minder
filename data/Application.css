@@ -24,6 +24,30 @@
 @define-color textColorPrimaryShadow @SILVER_500;
 @define-color colorAccent            @GRAPE_700;
 
+/* Tabs: make the selected one stand out and dim the others */
+notebook > header > tabs > tab {
+  min-height: 34px;
+  border-bottom: 3px solid transparent;
+}
+
+notebook > header > tabs > tab label {
+  opacity: 0.6;
+}
+
+notebook > header > tabs > tab:checked {
+  background: alpha(currentColor, 0.14);
+  border-bottom: 3px solid @accent_bg_color;
+}
+
+notebook > header > tabs > tab:checked label {
+  opacity: 1;
+  font-weight: bold;
+}
+
+notebook > header > tabs > tab:hover:not(:checked) {
+  background: alpha(currentColor, 0.06);
+}
+
 .theme-selected {
   background: blue;
   color: white;
