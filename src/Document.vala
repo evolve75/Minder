@@ -531,9 +531,13 @@ public class Document : Object {
   }
 
   //-------------------------------------------------------------
-  // Returns true if the file on disk differs from what we last read or wrote.
+  // Returns true if the file on disk differs from what we last read or wrote.  A
+  // file that is gone has nothing of someone else's to protect, so it does not
+  // count; saving writes it again, or reports why that is not possible.
   private bool externally_modified() {
-    return( (_disk_stamp != null) && (_disk_stamp != disk_stamp()) );
+    if( _disk_stamp == null ) return( false );
+    var now = disk_stamp();
+    return( (now != "") && (now != _disk_stamp) );
   }
 
   //-------------------------------------------------------------
@@ -541,7 +545,7 @@ public class Document : Object {
   // was changed by someone else since we last read or wrote it, the user is
   // asked first and the save completes (or the file is reloaded) after the
   // answer; false is returned in that case.
-  public bool save( bool force = false ) {
+  public bool save( bool force = false, bool quiet = false ) {
 
     if( !force && externally_modified() ) {
       _map.win.ask_modified_overwrite( _map, (overwrite) => {
@@ -575,6 +579,9 @@ public class Document : Object {
     // document stays modified so that nothing is lost and the app keeps running.
     if( !write_archive( filename ) ) {
       stderr.printf( "WARNING: Unable to save '%s'\n", filename );
+      if( !quiet ) {
+        _map.win.show_save_failed( _map );
+      }
       return( false );
     }
 
@@ -891,13 +898,12 @@ public class Document : Object {
     // Force the save to occur.  There is nobody to ask while quitting, so if the
     // file was changed by someone else, keep their version and store ours next to it.
     if( _save_needed ) {
-      // A file that is gone has nothing of someone else's to protect; it is simply written again
-      if( externally_modified() && (disk_stamp() != "") ) {
+      if( externally_modified() ) {
         var stamp = (new DateTime.now_local()).format( "%Y%m%d-%H%M%S" );
         var stem  = filename.has_suffix( ".minder" ) ? filename.substring( 0, filename.length - 7 ) : filename;
         filename  = "%s-conflict-%s.minder".printf( stem, stamp );
       }
-      if( !save( true ) ) {
+      if( !save( true, true ) ) {
         // Keep the work in the recovery copy rather than losing it
         write_recovery();
         stderr.printf( "WARNING: Unsaved changes were kept in '%s'\n", recovery_file() );

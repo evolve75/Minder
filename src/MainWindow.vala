@@ -1805,6 +1805,40 @@ public class MainWindow : Gtk.ApplicationWindow {
   }
 
   //-------------------------------------------------------------
+  // Tells the user that the document could not be written.  The changes stay
+  // in the tab, marked as unsaved, so they can be saved somewhere else.
+  public void show_save_failed( MindMap map ) {
+
+    var dialog = new Granite.MessageDialog.with_image_from_icon_name(
+      _( "Unable to save %s" ).printf( GLib.Path.get_basename( map.doc.filename ) ),
+      _( "The folder may have been removed or the disk may be unavailable. Your changes are still open and marked as unsaved. Choose another location with Save As." ),
+      "dialog-error",
+      ButtonsType.NONE
+    );
+
+    var cancel = new Button.with_label( _( "Cancel" ) );
+    dialog.add_action_widget( cancel, ResponseType.CANCEL );
+
+    var save_as = new Button.with_label( _( "Save As…" ) );
+    save_as.add_css_class( Granite.CssClass.SUGGESTED );
+    dialog.add_action_widget( save_as, ResponseType.ACCEPT );
+
+    dialog.set_transient_for( this );
+    dialog.set_default_response( ResponseType.ACCEPT );
+    dialog.set_title( "" );
+
+    dialog.response.connect((id) => {
+      dialog.close();
+      if( id == ResponseType.ACCEPT ) {
+        save_file( map, false );
+      }
+    });
+
+    dialog.show();
+
+  }
+
+  //-------------------------------------------------------------
   // Creates a new file
   public void do_new_file() {
 
