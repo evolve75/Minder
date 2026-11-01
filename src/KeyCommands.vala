@@ -1680,8 +1680,7 @@ public enum KeyCommand {
   }
 
   public static void quit_application( MindMap map ) {
-    map.win.close_request();
-    map.win.destroy();
+    map.win.quit_application();
   }
 
   public static void escape( MindMap map ) {
