@@ -28,6 +28,8 @@ public class NodeImage {
 
   private Pixbuf?       _orig = null;
   private Pixbuf?       _buf  = null;
+  private PixbufPainter _orig_painter = new PixbufPainter();
+  private PixbufPainter _buf_painter  = new PixbufPainter();
   private Rsvg.Handle?  _svg  = null;
   private Rsvg.Handle?  _svg_dark = null;
   private ImageSurface? _svg_cache = null;
@@ -472,8 +474,7 @@ public class NodeImage {
       draw_svg( ctx, 0, 0, orig_width, orig_height, 0, 0,
                 orig_width, orig_height, opacity, dark );
     } else if( _orig != null ) {
-      cairo_set_source_pixbuf( ctx, _orig, 0, 0 );
-      ctx.paint_with_alpha( opacity );
+      _orig_painter.paint( ctx, _orig, 0, 0, opacity );
     }
   }
 
@@ -668,8 +669,7 @@ public class NodeImage {
       draw_svg( ctx, x, y, width, height, crop_x, crop_y,
                 crop_w, crop_h, opacity, dark );
     } else if( _buf != null ) {
-      cairo_set_source_pixbuf( ctx, _buf, x, y );
-      ctx.paint_with_alpha( opacity );
+      _buf_painter.paint( ctx, _buf, x, y, opacity );
     }
   }
 
