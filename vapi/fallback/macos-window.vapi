@@ -25,6 +25,8 @@
 namespace MacosWindow {
   [CCode (cname = "minder_macos_window_use_native_controls")]
   public bool use_native_controls( Gtk.Window window );
+  [CCode (cname = "minder_macos_register_bundled_fonts")]
+  public void register_bundled_fonts();
   [CCode (cname = "MinderReopenFunc", has_target = true, simple_generics = true)]
   public delegate void ReopenFunc();
   [CCode (cname = "minder_macos_set_reopen_handler")]
