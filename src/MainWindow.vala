@@ -366,9 +366,11 @@ public class MainWindow : Gtk.ApplicationWindow {
       return( false );
     });
 
+#if !PRIMARY_COMMAND
     _pane.notify["position"].connect(() => {
       _settings.set_int( "properties-width", _pane.position );
     });
+#endif
 
     // Display the UI
     child = _pane;
@@ -2204,7 +2206,11 @@ public class MainWindow : Gtk.ApplicationWindow {
     if( !_inspector_nb.get_mapped() ) {
       _prop_btn.tooltip_text = _( "Keep Property Sidebar Shown" );
       _pane.end_child = _inspector_nb;
+#if PRIMARY_COMMAND
+      set_sidebar_position();
+#else
       _pane.position  = _settings.get_int( "properties-width" );
+#endif
       var map = get_current_map();
       if( map != null ) {
         map.canvas.see( false, true, -300 );
@@ -2239,7 +2245,11 @@ public class MainWindow : Gtk.ApplicationWindow {
       }
       if( !_inspector_nb.get_mapped() ) {
         _pane.end_child = _inspector_nb;
+#if PRIMARY_COMMAND
+        set_sidebar_position();
+#else
         _pane.position  = _settings.get_int( "properties-width" );
+#endif
         if( get_current_map( "show_properties 1" ) != null ) {
           get_current_map( "show_properties 2" ).canvas.see( false, true, -300 );
         }
@@ -2350,6 +2360,15 @@ public class MainWindow : Gtk.ApplicationWindow {
   private void save_window_size() {
     Minder.settings.set_int( "window-w", get_width() );
     Minder.settings.set_int( "window-h", get_height() );
+#if PRIMARY_COMMAND
+    // The paned position is the canvas width; keep the sidebar's own width
+    if( (_pane.end_child != null) && (_pane.get_width() > 0) ) {
+      var width = _pane.get_width() - _pane.position;
+      if( (width >= 250) && (width <= 600) ) {
+        Minder.settings.set_int( "properties-width", width );
+      }
+    }
+#endif
   }
 
   //-------------------------------------------------------------
@@ -3336,6 +3355,23 @@ public class MainWindow : Gtk.ApplicationWindow {
       _tab_menu.append_item( item );
     }
     _tab_action.set_state( new Variant.int32( _nb.page ) );
+  }
+
+  //-------------------------------------------------------------
+  // Positions the divider so the sidebar gets its saved width.
+  private void set_sidebar_position() {
+    var total = _pane.get_width();
+    if( total <= 0 ) {
+      total = (get_width() > 0) ? get_width() : _settings.get_int( "window-w" );
+    }
+    // Older builds stored the canvas width in this setting, so anything
+    // outside a sane sidebar width is ignored
+    var width = _settings.get_int( "properties-width" );
+    if( (width < 250) || (width > 600) ) {
+      width = 300;
+    }
+    width = width.clamp( 250, int.max( 250, total - 300 ) );
+    _pane.position = total - width;
   }
 
   private void update_macos_menu_state() {
