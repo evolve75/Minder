@@ -74,7 +74,11 @@ public class Benchmark {
     check_latex_clip( map, 1.0 );
     check_latex_clip( map, 0.5 );
 
-    time_animation( map, (owned) done );
+    if( Environment.get_variable( "MINDER_BENCH_CHURN" ) != null ) {
+      Idle.add(() => { time_tab_churn( win, map, (owned) done ); return( Source.REMOVE ); });
+    } else {
+      time_animation( map, (owned) done );
+    }
 
   }
 
@@ -190,6 +194,70 @@ public class Benchmark {
       differing = -2;
     }
     stdout.printf( "BENCH culling-identical scale=%g differing=%d (0 means identical) png-bytes=%d  %s\n", map_scale, differing, drawn, paths[0] );
+
+  }
+
+  //-------------------------------------------------------------
+  // Resident memory of this process in kilobytes.
+  private static int64 rss_kb() {
+    try {
+      string output;
+      Process.spawn_command_line_sync( "ps -o rss= -p %d".printf( (int)Posix.getpid() ), out output );
+      return( int64.parse( output.strip() ) );
+    } catch( SpawnError e ) {
+      return( -1 );
+    }
+  }
+
+  //-------------------------------------------------------------
+  // Opens and closes copies of the current map repeatedly and reports how the
+  // process's memory changes, to find tabs that are never freed.
+  // MINDER_BENCH_ROUNDS sets the number of rounds, MINDER_BENCH_HOLD keeps the
+  // process alive that many seconds afterwards for a profiler.
+  private static void time_tab_churn( MainWindow win, MindMap map, owned VoidFunc done ) {
+
+    var rounds_env    = Environment.get_variable( "MINDER_BENCH_ROUNDS" );
+    int ROUNDS        = (rounds_env != null) ? int.parse( rounds_env ) : 40;
+    int WARMUP_ROUNDS = 5;
+    var dir       = Environment.get_tmp_dir();
+    var first     = map.doc.filename;
+    var iter      = 0;
+    var base_rss  = 0LL;
+    var start_rss = rss_kb();
+
+    Timeout.add( 150, () => {
+      if( iter > 0 ) {
+        win.close_current_tab();
+      }
+      if( iter == ROUNDS ) {
+        var end_rss = rss_kb();
+        stdout.printf( "BENCH tab-churn: start=%lld KB after-warmup=%lld KB end=%lld KB  growth over %d open/close rounds=%lld KB (%.0f KB per round)\n",
+                       start_rss, base_rss, end_rss, ROUNDS - WARMUP_ROUNDS, end_rss - base_rss,
+                       (double)(end_rss - base_rss) / (ROUNDS - WARMUP_ROUNDS) );
+        var hold = Environment.get_variable( "MINDER_BENCH_HOLD" );
+        if( hold != null ) {
+          stdout.printf( "BENCH holding for %s s, pid=%d\n", hold, (int)Posix.getpid() );
+          stdout.flush();
+          Timeout.add_seconds( int.parse( hold ), () => { done(); return( Source.REMOVE ); } );
+        } else {
+          done();
+        }
+        return( Source.REMOVE );
+      }
+      var copy = GLib.Path.build_filename( dir, "minder-churn-%d.minder".printf( iter ) );
+      var src  = File.new_for_path( first );
+      try {
+        src.copy( File.new_for_path( copy ), FileCopyFlags.OVERWRITE );
+      } catch( Error e ) {
+        stderr.printf( "benchmark: %s\n", e.message );
+      }
+      win.open_file( copy, false );
+      iter++;
+      if( iter == WARMUP_ROUNDS ) {
+        base_rss = rss_kb();
+      }
+      return( Source.CONTINUE );
+    });
 
   }
 
