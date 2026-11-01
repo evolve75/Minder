@@ -50,7 +50,7 @@ if pkg-config --exists lasem-0.6; then
 fi
 echo "    LaTeX rendering: ${latex}"
 meson setup "${build}" "${repo}" --prefix=/usr/local --buildtype=release \
-  -Dgranite=false -Dlatex="${latex}" -Dwebkit=false >/dev/null
+  -Dgranite=false -Dlatex="${latex}" >/dev/null
 if ! meson compile -C "${build}" >"${out}/compile.log" 2>&1; then
   grep -a -m5 "error:" "${out}/compile.log" >&2 || tail -n 20 "${out}/compile.log" >&2
   exit 1
