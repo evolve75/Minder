@@ -50,19 +50,18 @@
 }
 
 .table-cell-editor {
-  border: 1px solid alpha(@theme_fg_color, 0.25);
+  border: 1px solid alpha(currentColor, 0.4);
   border-radius: 3px;
 }
 
 .table-cell-editor .table-cell-text,
 .table-cell-editor text {
   background-color: transparent;
-  color: @theme_fg_color;
-  caret-color: @theme_fg_color;
+  caret-color: currentColor;
 }
 
 .table-cell-highlighted {
-  background-color: alpha(@theme_fg_color, 0.1);
+  background-color: alpha(currentColor, 0.1);
 }
 
 .table-cell-selected {

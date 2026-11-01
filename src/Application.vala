@@ -68,6 +68,23 @@ public class Minder : Gtk.Application {
 
   }
 
+#if PRIMARY_COMMAND
+  //-------------------------------------------------------------
+  // Granite loads the application stylesheet (and defines the palette colors it
+  // refers to) on Linux; without Granite we do the same ourselves.
+  private void load_stylesheet() {
+    var display = Gdk.Display.get_default();
+    var palette = new CssProvider();
+    palette.load_from_string(
+      "@define-color GRAPE_700 #452981; @define-color SILVER_100 #fafafa; @define-color SILVER_500 #abacae;"
+    );
+    StyleContext.add_provider_for_display( display, palette, STYLE_PROVIDER_PRIORITY_APPLICATION );
+    var app_css = new CssProvider();
+    app_css.load_from_resource( "/io/github/phase1geo/minder/Application.css" );
+    StyleContext.add_provider_for_display( display, app_css, STYLE_PROVIDER_PRIORITY_APPLICATION );
+  }
+#endif
+
   //-------------------------------------------------------------
   // First method called in the startup process.
   private void start_application() {
@@ -85,6 +102,10 @@ public class Minder : Gtk.Application {
     weak IconTheme default_theme = IconTheme.get_for_display( Gdk.Display.get_default() );
     default_theme.add_resource_path( "/io/github/phase1geo/minder" );
     default_theme.add_resource_path( "/io/github/phase1geo/minder/icons/hicolor" );
+
+#if PRIMARY_COMMAND
+    load_stylesheet();
+#endif
 
     // Create the main window
     appwin = new MainWindow( this, settings );
