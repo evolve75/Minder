@@ -3313,7 +3313,10 @@ public class MainWindow : Gtk.ApplicationWindow {
 
       var map = get_current_map();
       if( map != null ) {
-        map.canvas.update_native_actions( MapState.get_state( map ), map.current_undo_buffer() );
+        // While editing text with nothing to undo, Undo falls back to the map history
+        var buf      = map.current_undo_buffer();
+        var can_undo = buf.undoable() || ((buf == map.undo_text) && map.undo_buffer.undoable());
+        map.canvas.update_native_actions( MapState.get_state( map ), can_undo, buf.redoable() );
       }
 
       return( Source.REMOVE );

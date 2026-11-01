@@ -1494,6 +1494,14 @@ public enum KeyCommand {
   public static void undo_action( MindMap map ) {
     if( !map.editable ) return;
     var buffer = map.current_undo_buffer();
+#if PRIMARY_COMMAND
+    // A node that was just created is in edit mode with empty text, so the text
+    // buffer has nothing to undo.  Leave edit mode and undo the map change.
+    if( !buffer.undoable() && (buffer == map.undo_text) && map.undo_buffer.undoable() ) {
+      map.unedit_text();
+      buffer = map.current_undo_buffer();
+    }
+#endif
     if( buffer.undoable() ) {
       buffer.undo();
     }
