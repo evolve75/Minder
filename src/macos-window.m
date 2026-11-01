@@ -228,15 +228,6 @@ minder_macos_register_bundled_fonts (void)
 }
 
 void
-minder_macos_note_recent_document (const char *path)
-{
-  if (path == NULL)
-    return;
-  NSURL *url = [NSURL fileURLWithPath: [NSString stringWithUTF8String: path]];
-  [[NSDocumentController sharedDocumentController] noteNewRecentDocumentURL: url];
-}
-
-void
 minder_macos_clear_recent_documents (void)
 {
   [[NSDocumentController sharedDocumentController] clearRecentDocuments: nil];
