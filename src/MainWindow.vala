@@ -452,7 +452,11 @@ public class MainWindow : Gtk.ApplicationWindow {
 
     close_request.connect(() => {
       save_window_size();
+#if !PRIMARY_COMMAND
       save_tabs();
+#endif
+      // On macOS closing the window only hides it (hide_on_close): the maps stay
+      // open, with their files, until the application is quit
       return( false );
     });
 
@@ -2206,6 +2210,15 @@ public class MainWindow : Gtk.ApplicationWindow {
   // Called whenever the DrawArea origin changes in the current tab
   private void change_origin() {
     save_tab_state( _nb.page );
+  }
+
+  //-------------------------------------------------------------
+  // Quits the application: saves the window size, closes every document
+  // and destroys the window.
+  public void quit_application() {
+    save_window_size();
+    save_tabs();
+    destroy();
   }
 
   //-------------------------------------------------------------

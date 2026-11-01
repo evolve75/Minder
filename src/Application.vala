@@ -137,8 +137,7 @@ public class Minder : Gtk.Application {
 
     var quit_action = new SimpleAction( "quit", null );
     quit_action.activate.connect(() => {
-      appwin.close_request();
-      appwin.destroy();
+      appwin.quit_application();
     });
     add_action( quit_action );
 #endif
