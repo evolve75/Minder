@@ -2046,7 +2046,9 @@ public class MainWindow : Gtk.ApplicationWindow {
       update_title( map );
       map.doc.load( UpgradeAction.NUM, (valid, msg) => {
         if( valid ) {
+#if PRIMARY_COMMAND
           add_recent( fname );
+#endif
           save_tab_state( _nb.page );
         } else {
           close_current_tab();
@@ -2224,9 +2226,13 @@ public class MainWindow : Gtk.ApplicationWindow {
             fname += ".minder";
           }
           map.doc.filename = fname;
+#if PRIMARY_COMMAND
           if( map.doc.save() ) {
             add_recent( fname );
           }
+#else
+          map.doc.save();
+#endif
           if( remove_after_save ) {
             var page = page_of( map );
             map.close();
