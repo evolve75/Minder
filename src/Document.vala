@@ -351,6 +351,13 @@ public class Document : Object {
     // Remember the state of the file we are reading
     _disk_stamp = disk_stamp();
 
+    // A recovery copy newer than the file holds changes lost to a crash
+    var recovered = false;
+    if( FileUtils.test( recovery_file(), FileTest.EXISTS ) && (mtime_of( recovery_file() ) >= mtime_of( filename )) ) {
+      fname     = recovery_file();
+      recovered = true;
+    }
+
     // stdout.printf( "Loading fname: %s, temp: %s\n", fname, _temp_dir );
 
     Archive.Read archive = new Archive.Read();
@@ -416,6 +423,12 @@ public class Document : Object {
 
     // Finally, load the minder file
     var loaded = load_xml();
+
+    // Recovered changes were never saved, so the document is modified
+    if( recovered && loaded ) {
+      _save_needed = true;
+      save_changed();
+    }
 
     if( func != null ) {
       func( loaded, "load" );
@@ -484,17 +497,58 @@ public class Document : Object {
   }
 
   //-------------------------------------------------------------
+  // Path of the crash-recovery copy of this document.
+  private string recovery_file() {
+    var id = Checksum.compute_for_string( ChecksumType.MD5, filename );
+    return( GLib.Path.build_filename( get_unsaved_dir(), ".recovery-%s.minder".printf( id ) ) );
+  }
+
+  //-------------------------------------------------------------
+  // Removes the crash-recovery copy, if any.
+  private void remove_recovery() {
+    FileUtils.unlink( recovery_file() );
+  }
+
+  //-------------------------------------------------------------
+  // Writes a recovery copy of a document with unsaved changes.  The document
+  // itself and its saved/unsaved state are not touched; after a crash the copy
+  // is picked up the next time the document is opened.
+  public void write_recovery() {
+    if( !_save_needed || !_map.editable ) return;
+    DirUtils.create_with_parents( get_unsaved_dir(), 0775 );
+    save_xml_internal( get_map_file(), false );
+    write_archive( recovery_file() );
+  }
+
+  //-------------------------------------------------------------
+  // Returns the modification time of the file, or 0 if it does not exist.
+  private static int64 mtime_of( string path ) {
+    try {
+      return( GLib.File.new_for_path( path ).query_info( "time::modified", FileQueryInfoFlags.NONE ).get_modification_date_time().to_unix() );
+    } catch( Error e ) {
+      return( 0 );
+    }
+  }
+
+  //-------------------------------------------------------------
+  // Returns true if the file on disk differs from what we last read or wrote.
+  private bool externally_modified() {
+    return( (_disk_stamp != null) && (_disk_stamp != disk_stamp()) );
+  }
+
+  //-------------------------------------------------------------
   // Archives the contents of the opened Minder directory.  If the file on disk
   // was changed by someone else since we last read or wrote it, the user is
   // asked first and the save completes (or the file is reloaded) after the
   // answer; false is returned in that case.
   public bool save( bool force = false ) {
 
-    if( !force && (_disk_stamp != null) && (_disk_stamp != disk_stamp()) ) {
+    if( !force && externally_modified() ) {
       _map.win.ask_modified_overwrite( _map, (overwrite) => {
         if( overwrite ) {
           save( true );
         } else {
+          remove_recovery();
           _map.initialize_for_open();
           load();
         }
@@ -517,10 +571,35 @@ public class Document : Object {
     save_xml();
 
     // Create the tar.gz archive named according the the first argument
+    write_archive( filename );
+
+    // Remove the bak file if the save went well
+    if( backed && !_map.settings.get_boolean( "keep-backup-after-save" ) ) {
+      FileUtils.unlink( bak_file );
+    }
+
+    // Remember what we wrote so that later changes by others can be noticed
+    _disk_stamp = disk_stamp();
+    remove_recovery();
+
+    // Indicate that a save is no longer needed
+    _save_needed = false;
+    _upgrade_ro = false;
+    read_only_changed();
+    save_changed();
+
+    return( true );
+
+  }
+
+  //-------------------------------------------------------------
+  // Writes the document (map file and images) as a tar.gz archive to dest.
+  private void write_archive( string dest ) {
+
     Archive.Write archive = new Archive.Write ();
     archive.add_filter_gzip();
     archive.set_format_pax_restricted();
-    archive.open_filename( filename );
+    archive.open_filename( dest );
 
     // Add the Minder file to the archive
     archive_file( archive, get_map_file() );
@@ -536,22 +615,6 @@ public class Document : Object {
     if( archive.close() != Archive.Result.OK ) {
       error( "Error : %s (%d)", archive.error_string(), archive.errno() );
     }
-
-    // Remove the bak file if the save went well
-    if( backed && !_map.settings.get_boolean( "keep-backup-after-save" ) ) {
-      FileUtils.unlink( bak_file );
-    }
-
-    // Remember what we wrote so that later changes by others can be noticed
-    _disk_stamp = disk_stamp();
-
-    // Indicate that a save is no longer needed
-    _save_needed = false;
-    _upgrade_ro = false;
-    read_only_changed();
-    save_changed();
-
-    return( true );
 
   }
 
@@ -813,10 +876,17 @@ public class Document : Object {
   // will clean up tmp space.
   public void cleanup() {
 
-    // Force the save to occur
+    // Force the save to occur.  There is nobody to ask while quitting, so if the
+    // file was changed by someone else, keep their version and store ours next to it.
     if( _save_needed ) {
-      save();
+      if( externally_modified() ) {
+        var stamp = (new DateTime.now_local()).format( "%Y%m%d-%H%M%S" );
+        var stem  = filename.has_suffix( ".minder" ) ? filename.substring( 0, filename.length - 7 ) : filename;
+        filename  = "%s-conflict-%s.minder".printf( stem, stamp );
+      }
+      save( true );
     }
+    remove_recovery();
 
     // Delete the temporary directory
     try {
