@@ -37,10 +37,18 @@ it only if upstream wants macOS support.
 
 ## Producing patches
 
+`features/macos-integration` keeps the chronological history. `features/macos-series` holds the
+same final tree as a clean, ordered series of one-concern commits on top of `master`:
+general fixes first (indentation whitespace, scale-0 canvas, GNOME schema guard), then the
+build options and shims, then the macOS behaviour grouped by topic, docs last. Every commit
+from the WebKit option onward builds with `-Dgranite=false -Dlatex=false -Dwebkit=false`
+(the three before it need Lasem and WebKit installed, as on Linux).
+
 ```sh
-git format-patch -o patches/ master..features/<branch>
+git diff features/macos-integration features/macos-series   # must be empty
+git format-patch -o patches/ master..features/macos-series
 ```
 
-Several commits mix concerns (for example the build baseline commit holds the options, the
-shim and the librsvg vapi). Split them with `git rebase -i` into one commit per row above
-before sending a pull request. Do not push to `upstream`.
+When a macOS change lands on `features/macos-integration`, re-apply it to the series as its own
+commit (or fold it into its parent topic). Nothing is sent upstream from here; this repo only
+keeps the patches ready. Do not push to `upstream`.
