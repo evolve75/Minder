@@ -311,6 +311,10 @@ public class LatexRenderer : Object {
   // Lays out one formula with Lasem and records it as a vector surface.
   // Returns null if the expression cannot be parsed.
   private static LatexImage? render_formula( LatexSpan span ) {
+#if !LATEX
+    // Built without Lasem: formulas are displayed as plain text.
+    return( null );
+#else
     try {
       // \displaystyle matches the previous LaTeX pipeline (limits above and
       // below sums, full-size fractions).
@@ -351,6 +355,7 @@ public class LatexRenderer : Object {
       debug( "Unable to render LaTeX '%s': %s", span.expression, e.message );
       return( null );
     }
+#endif
   }
 
 }
