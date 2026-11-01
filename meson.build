@@ -142,6 +142,7 @@ test_executable = executable(
     'src/NodeImage.vala',
     'src/NodeTableModel.vala',
     'src/PixbufPainter.vala',
+    'src/XmlFragment.vala',
   ),
   dependencies: dependencies,
 )

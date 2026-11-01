@@ -272,8 +272,9 @@ public class Document : Object {
 
     while( archive.next_header( out entry ) == Archive.Result.OK ) {
       if( entry.pathname() == "map.xml" ) {
-        uint8[] data = new uint8[entry.size()];
-        if( archive.read_data( data ) > 0 ) {
+        // One extra byte so that the buffer is a valid NUL-terminated string
+        uint8[] data = new uint8[entry.size() + 1];
+        if( archive.read_data( data[0:entry.size()] ) > 0 ) {
           var memory = (string)data;
           Xml.Doc* doc = Xml.Parser.read_memory( memory, memory.length, null, null, Xml.ParserOption.HUGE );
           if( doc != null ) {
