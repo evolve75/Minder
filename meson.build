@@ -135,9 +135,11 @@ e = executable('io.github.phase1geo.minder',
     install : true
 )
 
+# These helper tools are not available on every platform (e.g. macOS), and
+# gnome.post_install() fails the install when a requested one is missing.
 gnome.post_install(
   glib_compile_schemas: true,
-  gtk_update_icon_cache: true,
-  update_mime_database: true,
-  update_desktop_database: true,
+  gtk_update_icon_cache: find_program('gtk4-update-icon-cache', 'gtk-update-icon-cache', required: false).found(),
+  update_mime_database: find_program('update-mime-database', required: false).found(),
+  update_desktop_database: find_program('update-desktop-database', required: false).found(),
 )
