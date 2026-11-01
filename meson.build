@@ -53,6 +53,14 @@ add_project_arguments([
     language: 'vala',
 )
 
+# Some platforms (e.g. Homebrew) ship librsvg without a Vala binding; fall back
+# to the minimal in-tree binding only when the system has none.
+if not meson.get_compiler('vala').find_library('librsvg-2.0', required: false).found()
+  add_project_arguments([
+      '--vapidir=' + join_paths(meson.project_source_root(), 'vapi', 'fallback')
+  ], language: 'vala')
+endif
+
 add_project_arguments(['-w'], language: 'c')
 
 dependencies = [
