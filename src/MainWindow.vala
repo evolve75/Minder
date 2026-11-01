@@ -3367,13 +3367,7 @@ public class MainWindow : Gtk.ApplicationWindow {
     if( total <= 0 ) {
       total = (get_width() > 0) ? get_width() : _settings.get_int( "window-w" );
     }
-    // Older builds stored the canvas width in this setting, so anything
-    // outside a sane sidebar width is ignored
-    var width = _settings.get_int( "properties-width" );
-    if( (width < 250) || (width > 600) ) {
-      width = 300;
-    }
-    width = width.clamp( 250, int.max( 250, total - 300 ) );
+    var width = PanedGeometry.sidebar_width( _settings.get_int( "properties-width" ), total );
     _pane.position = total - width;
   }
 

@@ -27,6 +27,19 @@
 public class XmlFragment {
 
   //-------------------------------------------------------------
+  // Returns true if the XML node's first child is a text node with content.
+  // Indentation between elements is parsed as blank text nodes and must not be
+  // mistaken for the node's text.
+  public static bool has_text_content( Xml.Node* n ) {
+    if( (n->children == null) || (n->children->type != Xml.ElementType.TEXT_NODE) ) {
+      return( false );
+    }
+    // Whitespace followed by element siblings is indentation; whitespace on its own
+    // is the text itself (a node named " ").
+    return( (n->children->next == null) || (n->children->get_content().strip() != "") );
+  }
+
+  //-------------------------------------------------------------
   // Parses the HTML fragment and returns a copy of its root element.  If it
   // cannot be parsed, returns a new element named fallback_tag that holds
   // fallback_text instead.  The caller owns the returned node.

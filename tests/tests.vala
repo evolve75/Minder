@@ -233,6 +233,7 @@ public static int main (string[] args) {
   tests.add( new MinderTest.NodeImageTest() );
   tests.add( new MinderTest.NodeTableModelTest() );
   tests.add( new MinderTest.XmlFragmentTest() );
+  tests.add( new MinderTest.PortLogicTest() );
 
   exit_status = tests.run();
 
