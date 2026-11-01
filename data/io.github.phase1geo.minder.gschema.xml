@@ -47,8 +47,8 @@
     </key>
     <key name="enable-ui-animations" type="b">
       <default>true</default>
-      <summary>Enables/disables application UI animations</summary>
-      <description>Enables/disables application UI animations</description>
+      <summary>Enables/disables sidebar animations</summary>
+      <description>Controls whether the sidebar panels slide when switching tabs or selecting a different kind of item</description>
     </key>
     <key name="enable-animations" type="b">
       <default>true</default>

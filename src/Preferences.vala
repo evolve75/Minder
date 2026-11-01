@@ -197,8 +197,9 @@ public class Preferences : Granite.Dialog {
     grid.attach( make_switch( "enable-animations" ), 1, row );
     row++;
 
-    grid.attach( make_label( _( "Enable window animations" ) ), 0, row );
+    grid.attach( make_label( _( "Enable sidebar animations" ) ), 0, row );
     grid.attach( make_switch( "enable-ui-animations" ), 1, row );
+    grid.attach( make_info( _( "Slides the sidebar panels when you switch tabs or select a different kind of item.  If disabled, they change instantly." ) ), 3, row );
     row++;
 
     grid.attach( make_label( _( "Text field font size" ) ), 0, row );
