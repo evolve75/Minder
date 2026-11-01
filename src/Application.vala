@@ -44,7 +44,12 @@ public class Minder : Gtk.Application {
 
     Object(
       application_id: "io.github.phase1geo.minder",
+#if PRIMARY_COMMAND
+      // Finder double-click, Open With and Dock drops arrive as open events
+      flags: (ApplicationFlags.HANDLES_COMMAND_LINE | ApplicationFlags.HANDLES_OPEN),
+#else
       flags: ApplicationFlags.HANDLES_COMMAND_LINE,
+#endif
       version: static_version
     );
 
@@ -57,6 +62,9 @@ public class Minder : Gtk.Application {
 
     startup.connect( start_application );
     command_line.connect( handle_command_line );
+#if PRIMARY_COMMAND
+    open.connect( handle_open );
+#endif
 
   }
 
@@ -144,6 +152,21 @@ public class Minder : Gtk.Application {
     }
     return( status );
   }
+
+#if PRIMARY_COMMAND
+  //-------------------------------------------------------------
+  // Opens the files that macOS asks us to open (double-click in Finder,
+  // Open With, or dropping files on the Dock icon).
+  private void handle_open( File[] files, string hint ) {
+    foreach( var file in files ) {
+      var path = file.get_path();
+      if( (path != null) && !appwin.open_file( path, false ) ) {
+        stdout.printf( _( "ERROR:  Unable to open file '%s'\n" ), path );
+      }
+    }
+    appwin.present();
+  }
+#endif
 
   //-------------------------------------------------------------
   // Parse the command-line arguments.
