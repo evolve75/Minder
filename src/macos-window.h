@@ -46,9 +46,8 @@ void minder_macos_set_reopen_handler (MinderReopenFunc callback, gpointer user_d
  * Call before GTK creates its font map. */
 void minder_macos_register_bundled_fonts (void);
 
-/* Adds the file to the system's recent documents (Apple menu, Dock menu), or
- * clears that list when path is NULL. */
-void minder_macos_note_recent_document (const char *path);
+/* Empties the system's recent documents list.  The app keeps its own list, and
+ * the Dock menu shows the open tabs instead. */
 void minder_macos_clear_recent_documents (void);
 
 /* Makes the titlebar as tall as the header bar and centres the traffic lights

@@ -515,9 +515,11 @@ public class MainWindow : Gtk.ApplicationWindow {
   //-------------------------------------------------------------
   // Shows the macOS edited marker (a dot in the close button) when the current
   // document has unsaved changes.
-  private void update_edited_marker() {
+  private void update_edited_marker( int page = -1 ) {
 #if MACOS_WINDOW
-    var map = get_current_map();
+    // During a tab switch the notebook still reports the old page, so the
+    // caller passes the new one
+    var map = (page >= 0) ? get_map( page ) : get_current_map();
     if( map != null ) {
       MacosWindow.set_edited( this, map.doc.save_needed );
     }
@@ -610,13 +612,13 @@ public class MainWindow : Gtk.ApplicationWindow {
   // This needs to be called whenever the tab is changed
   private void tab_changed( int page_num ) {
 #if PRIMARY_COMMAND
-    update_tab_menu();
+    update_tab_menu( page_num );
 #endif
     var map = get_map( page_num );
     do_buffer_changed( map.current_undo_buffer() );
     on_current_changed( map );
     update_title( map );
-    update_edited_marker();
+    update_edited_marker( page_num );
     canvas_changed( map );
     _brain.set_list( map.model.braindump );
     _brain_btn.sensitive = map.editable;
@@ -3441,6 +3443,11 @@ public class MainWindow : Gtk.ApplicationWindow {
     _clear_recent_action = new SimpleAction( "clear-recent", null );
     _clear_recent_action.activate.connect((v) => { clear_recent(); });
     _actions.add_action( _clear_recent_action );
+#if MACOS_WINDOW
+    // Files the system listed under Recent Items and in the Dock menu would
+    // repeat the open tabs there, so none are registered
+    MacosWindow.clear_recent_documents();
+#endif
     update_recent_menu();
   }
 
@@ -3449,9 +3456,6 @@ public class MainWindow : Gtk.ApplicationWindow {
   public void add_recent( string fname ) {
     if( !fname.has_suffix( ".minder" ) ) return;
     _settings.set_strv( "recent-files", RecentFiles.add( _settings.get_strv( "recent-files" ), fname ) );
-#if MACOS_WINDOW
-    MacosWindow.note_recent_document( fname );
-#endif
     update_recent_menu();
   }
 
@@ -3497,22 +3501,25 @@ public class MainWindow : Gtk.ApplicationWindow {
 
   //-------------------------------------------------------------
   // Rebuilds the list of open tabs in the Window menu.
-  private void update_tab_menu() {
+  private void update_tab_menu( int current = -1 ) {
     if( (_tab_menu == null) || (_nb == null) ) return;
+    // During a tab switch the notebook still reports the old page, so the
+    // caller passes the new one
+    if( current < 0 ) current = _nb.page;
     _tab_menu.remove_all();
     for( int i=0; i<_nb.get_n_pages(); i++ ) {
       var item = new GLib.MenuItem( get_tab_display_name( i ), null );
       item.set_action_and_target_value( "win.select-tab", new Variant.int32( i ) );
       _tab_menu.append_item( item );
     }
-    _tab_action.set_state( new Variant.int32( _nb.page ) );
+    _tab_action.set_state( new Variant.int32( current ) );
 #if MACOS_WINDOW
     // The Dock menu lists the same tabs, unsaved ones included
     string[] titles = {};
     for( int i=0; i<_nb.get_n_pages(); i++ ) {
       titles += get_tab_display_name( i );
     }
-    MacosWindow.set_dock_tabs( titles, _nb.page );
+    MacosWindow.set_dock_tabs( titles, current );
 #endif
   }
 
