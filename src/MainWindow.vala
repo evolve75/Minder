@@ -812,6 +812,10 @@ public class MainWindow : Gtk.ApplicationWindow {
 
     // Indicate that the tab has changed
     if( reason != TabAddReason.LOAD ) {
+#if PRIMARY_COMMAND
+      // The window may be hidden (closed with the app left running)
+      present();
+#endif
       if( reason == TabAddReason.OPEN ) {
         map.editable = true;
       }
@@ -874,12 +878,25 @@ public class MainWindow : Gtk.ApplicationWindow {
   //-------------------------------------------------------------
   // Returns the next tab in the tabbar.
   public void next_tab() {
+#if PRIMARY_COMMAND
+    // macOS tab switching wraps around
+    if( _nb.page == (_nb.get_n_pages() - 1) ) {
+      _nb.page = 0;
+      return;
+    }
+#endif
     _nb.next_page();
   }
 
   //-------------------------------------------------------------
   // Returns the previous tab in the tabbar.
   public void previous_tab() {
+#if PRIMARY_COMMAND
+    if( _nb.page == 0 ) {
+      _nb.page = _nb.get_n_pages() - 1;
+      return;
+    }
+#endif
     _nb.prev_page();
   }
 
