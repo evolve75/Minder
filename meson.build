@@ -147,6 +147,7 @@ test_executable = executable(
   files(
     'src/LatexSpanParser.vala',
     'src/ArchiveSafety.vala',
+    'src/UrlSafety.vala',
     'src/ImageManager.vala',
     'src/NodeImage.vala',
     'src/NodeTableModel.vala',
