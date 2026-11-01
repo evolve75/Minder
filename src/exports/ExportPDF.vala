@@ -68,4 +68,27 @@ public class ExportPDF : Export {
 
   }
 
+#if MACOS_PRINT
+  //-------------------------------------------------------------
+  // Exports a PDF whose single page is exactly the map plus a margin, so that
+  // a print system can scale it to whatever paper the user picks.
+  public bool export_to_fit( string fname, MindMap map ) {
+
+    double x, y, w, h;
+    map.model.document_rectangle( out x, out y, out w, out h );
+
+    double margin  = 24;
+    var    surface = new PdfSurface( fname, w + (2 * margin), h + (2 * margin) );
+    var    context = new Context( surface );
+
+    context.translate( (margin - x), (margin - y) );
+    map.canvas.get_style_context().render_background( context, x, y, w, h );
+    map.model.draw_all( context, true, false );
+    context.show_page();
+
+    return( true );
+
+  }
+#endif
+
 }

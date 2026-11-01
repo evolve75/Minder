@@ -79,6 +79,16 @@ dependencies = [
     math_dep
 ]
 
+# Native macOS print panel (Objective-C): the Homebrew GTK has no CUPS backend
+mac_link_args = []
+if host_machine.system() == 'darwin'
+  add_languages('objc', native: false)
+  add_project_arguments(['-fobjc-arc'], language: 'objc')
+  add_project_arguments(['--define=MACOS_PRINT'], language: 'vala')
+  sources += files('src/macos-print.m')
+  mac_link_args = ['-framework', 'Cocoa', '-framework', 'PDFKit']
+endif
+
 # Optional components (see meson_options.txt)
 extra_vala_args = [
     join_paths(meson.project_source_root(), 'vapi', 'libmarkdown.vapi'),
@@ -87,6 +97,10 @@ extra_vala_args = [
 
 if libmarkdown.version().version_compare('>=3.0')
   extra_vala_args += join_paths(meson.project_source_root(), 'vapi', 'libmarkdown3.vapi')
+endif
+
+if host_machine.system() == 'darwin'
+  extra_vala_args += join_paths(meson.project_source_root(), 'vapi', 'fallback', 'macos-print.vapi')
 endif
 
 if get_option('granite')
@@ -145,6 +159,8 @@ e = executable('io.github.phase1geo.minder',
     config_file,
     gresource,
     dependencies: dependencies,
+    include_directories: include_directories('src'),
+    link_args: mac_link_args,
     vala_args: extra_vala_args,
     install : true
 )
