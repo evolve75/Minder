@@ -24,7 +24,7 @@ using Gdk;
 
 public class UrlEditor {
 
-  private MindMap _map;
+  private weak MindMap _map;
   private Popover _popover;
   private bool    _add = true;
   private Entry   _entry;

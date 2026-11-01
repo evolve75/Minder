@@ -21,7 +21,7 @@
 
 public class UnicodeParser : TextParser {
 
-  private MindMap _map;
+  private weak MindMap _map;
 
   //-------------------------------------------------------------
   // Default constructor

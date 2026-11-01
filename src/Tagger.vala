@@ -24,7 +24,7 @@ using Gee;
 
 public class Tagger {
 
-  private MindMap              _map;
+  private weak MindMap              _map;
   private HashMap<string,bool> _pre_tags;
   private HashMap<string,int>  _tags;
   private Gtk.SearchEntry      _entry;

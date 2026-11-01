@@ -27,6 +27,9 @@ public class MindMap {
   private MainWindow     _win;
   private GLib.Settings  _settings;
   private MapModel       _model;
+  private bool           _handlers_disconnected = false;
+  private ulong          _settings_changed_id = 0;   // Handler on the application settings
+  private ulong          _size_ready_id       = 0;   // Handler for the first size of a new map
   private DrawArea       _canvas;
   private Document       _doc;
   private UndoBuffer     _undo_buffer;
@@ -263,7 +266,9 @@ public class MindMap {
 
     // Get the value of the new node from edit
     update_focus_mode_alpha();
-    _settings.changed.connect(() => {
+    // The settings object lives as long as the application, so this handler must be
+    // disconnected when the map is closed or it keeps the map alive forever
+    _settings_changed_id = _settings.changed.connect(() => {
       update_focus_mode_alpha();
     });
 
@@ -345,8 +350,48 @@ public class MindMap {
 
   //-------------------------------------------------------------
   // Called when we want to close this map from the application.
+
   public void close() {
+    disconnect_handlers();
     doc.cleanup();
+  }
+
+  //-------------------------------------------------------------
+  // The map is not a GObject, so connecting its own methods to the signals of
+  // the objects it owns (model, canvas, document, ...) makes each of those hold
+  // a reference to the map: a cycle that would keep a closed tab, and everything
+  // in it, in memory forever.  Disconnect them all when the map is closed.
+  public void disconnect_handlers() {
+
+    if( _settings_changed_id != 0 ) {
+      _settings.disconnect( _settings_changed_id );
+      _settings_changed_id = 0;
+    }
+
+    if( _handlers_disconnected ) return;
+    _handlers_disconnected = true;
+
+    _model.changed.disconnect( handle_model_changed );
+    _model.current_changed.disconnect( handle_current_changed );
+    _model.theme_changed.disconnect( handle_theme_changed );
+    _model.loaded.disconnect( handle_model_loaded );
+    _model.queue_draw.disconnect( _canvas.queue_draw );
+    _model.see.disconnect( _canvas.see );
+
+    _canvas.current_changed.disconnect( handle_current_changed );
+    _canvas.scale_changed.disconnect( handle_scale_changed );
+    _canvas.scroll_changed.disconnect( handle_scroll_changed );
+
+    _doc.read_only_changed.disconnect( handle_read_only_changed );
+    _undo_buffer.buffer_changed.disconnect( handle_undo_buffer_changed );
+    _selected.selection_changed.disconnect( handle_selection_changed );
+    _highlighted.changed.disconnect( handle_tag_highlight_changed );
+
+    if( _size_ready_id != 0 ) {
+      _canvas.disconnect( _size_ready_id );
+      _size_ready_id = 0;
+    }
+
   }
 
   //-------------------------------------------------------------
@@ -424,7 +469,7 @@ public class MindMap {
     reload_tags();
 
     // Create and add the first root node after idle to allow the window size to be known
-    _canvas.size_ready.connect((w, h) => {
+    _size_ready_id = _canvas.size_ready.connect((w, h) => {
       var n = _model.create_root_node( _( "Main Idea" ) );
       set_current_node( n );
       _model.set_node_mode( n, NodeMode.EDITABLE, false );

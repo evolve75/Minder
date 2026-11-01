@@ -23,7 +23,7 @@ using GLib;
 
 public class Animator : Object {
 
-  private DrawArea              _da;            // Reference to canvas
+  private weak DrawArea              _da;            // Reference to canvas
   private Queue<AnimatorAction> _actions;       // Queue of animation actions to perform
   private const int             _timeout = 20;  // Number of milliseconds between frames (30 fps)
   private const double          _frames  = 10;  // Number of frames to animate (note: set to 1 to disable animation)

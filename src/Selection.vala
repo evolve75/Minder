@@ -21,7 +21,7 @@
 
 public class Selection {
 
-  private MindMap           _map;
+  private weak MindMap           _map;
   private Array<Node>       _nodes;
   private Array<Connection> _conns;
   private Array<Sticker>    _stickers;

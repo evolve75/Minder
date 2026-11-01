@@ -33,7 +33,7 @@ public class ImageEditor {
   private const int    POPOVER_PAD = 20;   // Room for the popover arrow and shadow
 
   private Popover         _popover;
-  private DrawArea        _canvas;
+  private weak DrawArea        _canvas;
   private ImageManager    _im;
   private DrawingArea     _da;
   private Node            _node;

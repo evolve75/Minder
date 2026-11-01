@@ -53,7 +53,7 @@ public enum MapItemComponent {
 
 public class MapModel {
 
-  private MindMap       _map;
+  private weak MindMap       _map;
   private Node?         _last_node      = null;
   private Array<Node>   _nodes;
   private Connections   _connections;

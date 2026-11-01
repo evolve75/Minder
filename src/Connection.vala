@@ -45,7 +45,7 @@ public enum ConnMode {
 public class Connection : Object {
 
   private int         RADIUS     = 6;
-  private MindMap     _map;
+  private weak MindMap     _map;
   private ConnMode    _mode      = ConnMode.NONE;
   private Node?       _from_node = null;
   private Node?       _to_node   = null;

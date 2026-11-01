@@ -30,7 +30,7 @@ public enum StickerMode {
 
 public class Sticker : Object {
 
-  private MindMap _map;
+  private weak MindMap _map;
   private string  _name;
   private Pixbuf  _buf;
   private double  _posx = 0.0;
