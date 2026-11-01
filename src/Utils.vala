@@ -299,7 +299,23 @@ public class Utils {
     string html;
     var pre_md = preprocess_markdown_highlighting( md );
 #if MD30
-    html = Markup.escape_text( pre_md );
+    // libmarkdown 3.x takes a flag object instead of a flag word
+    var flags = new Markdown3.Flags();
+    flags.set_flag( Markdown3.NOPANTS );
+    flags.set_flag( Markdown3.TOC );
+    flags.set_flag( Markdown3.COMPAT_1 );
+    flags.set_flag( Markdown3.AUTOLINK );
+    flags.set_flag( Markdown3.EXTRA_FOOTNOTE );
+    flags.set_flag( Markdown3.NOSTYLE );
+    flags.set_flag( Markdown3.DLEXTRA );
+    flags.set_flag( Markdown3.FENCEDCODE );
+    flags.set_flag( Markdown3.IDANCHOR );
+    flags.set_flag( Markdown3.LATEX );
+    var mkd = new Markdown3.Document.from_gfm_string( pre_md.data, flags );
+    mkd.compile( flags );
+    unowned string doc_html;
+    mkd.document( out doc_html );
+    html = doc_html;
 #else
     uint32 flags = Markdown.DocumentFlags.NOPANTS |
                 Markdown.DocumentFlags.TOC |
