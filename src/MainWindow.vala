@@ -252,6 +252,18 @@ public class MainWindow : Gtk.ApplicationWindow {
     };
     set_titlebar( _header );
 
+#if MACOS_WINDOW
+    // Swap GTK's own window buttons for the native traffic lights as soon as
+    // the window has a native counterpart (it is active once it is on screen).
+    // GDK hides the native buttons again when the window changes state, so they
+    // are restored whenever that happens.
+    notify["is-active"].connect( update_native_window_controls );
+    notify["fullscreened"].connect( update_native_window_controls );
+    notify["maximized"].connect( update_native_window_controls );
+#endif
+
+
+
     // Set the default window size to the last session size
     set_default_size( window_w, window_h );
 
@@ -2272,6 +2284,26 @@ public class MainWindow : Gtk.ApplicationWindow {
     map.canvas.queue_draw();
     return( false );
   }
+
+#if MACOS_WINDOW
+  //-------------------------------------------------------------
+  // Shows the native traffic lights (and leaves room for them in the header
+  // bar), except in full screen where macOS provides its own.
+  private void update_native_window_controls() {
+    if( fullscreened ) {
+      _header.remove_css_class( "native-window-controls" );
+    } else if( MacosWindow.use_native_controls( this ) ) {
+      _header.show_title_buttons = false;
+      _header.add_css_class( "native-window-controls" );
+    }
+    Idle.add(() => {
+      if( !fullscreened ) {
+        MacosWindow.use_native_controls( this );
+      }
+      return( Source.REMOVE );
+    });
+  }
+#endif
 
   //-------------------------------------------------------------
   // Saves the window size to gsettings.
