@@ -58,6 +58,7 @@ public class Benchmark {
     time_scenario( map, "zoom-out", 1600, 1000, 1.0, 0.1 );
 
     time_images();
+    time_text_helpers();
 
     check_culling( map, 1.0 );
     check_culling( map, 0.1 );
@@ -91,6 +92,43 @@ public class Benchmark {
 
     stdout.printf( "BENCH image-draw per-draw: rebuild=%.3f ms  cached=%.3f ms  (%d draws, 300x200)\n",
                    old_ms / DRAWS, new_ms / DRAWS, DRAWS );
+
+  }
+
+  //-------------------------------------------------------------
+  // Times the text helpers that run on every search keystroke, word jump and
+  // note tooltip.
+  private static void time_text_helpers() {
+
+    const int CALLS = 2000;
+    var note = "A **bold** note with `code`, a [link](http://example.com) and\n\n* one\n* two\n* ==marked==\n";
+    var text = "the quick brown fox jumps over the lazy dog";
+
+    stdout.printf( "BENCH text-helpers sample: remove_markdown='%s' markup='%s' find_word=%d\n",
+                   Utils.remove_markdown( note ).replace( "\n", "|" ),
+                   Utils.prepare_note_markup( note ).replace( "\n", "|" ), Utils.find_word( text, 20, true ) );
+
+    var start = GLib.get_monotonic_time();
+    for( int i=0; i<CALLS; i++ ) {
+      Utils.remove_markdown( note );
+    }
+    var remove_ms = (GLib.get_monotonic_time() - start) / 1000.0 / CALLS;
+
+    start = GLib.get_monotonic_time();
+    for( int i=0; i<CALLS; i++ ) {
+      Utils.prepare_note_markup( note );
+    }
+    var tooltip_ms = (GLib.get_monotonic_time() - start) / 1000.0 / CALLS;
+
+    start = GLib.get_monotonic_time();
+    for( int i=0; i<CALLS; i++ ) {
+      Utils.find_word( text, 20, true );
+      Utils.find_word( text, 20, false );
+    }
+    var word_ms = (GLib.get_monotonic_time() - start) / 1000.0 / CALLS;
+
+    stdout.printf( "BENCH text-helpers per call: remove_markdown=%.4f ms  prepare_note_markup=%.4f ms  find_word(x2)=%.4f ms\n",
+                   remove_ms, tooltip_ms, word_ms );
 
   }
 
