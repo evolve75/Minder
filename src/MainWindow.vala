@@ -3292,6 +3292,14 @@ public class MainWindow : Gtk.ApplicationWindow {
     // delivered to menus; Shift-Command-[ and ] are the standard tab shortcuts
     mi( s, KeyCommand.TAB_GOTO_PREV, _( "Show Previous Tab" ), "<Meta>braceleft" );
     mi( s, KeyCommand.TAB_GOTO_NEXT, _( "Show Next Tab" ),     "<Meta>braceright" );
+    // One item per open tab, with a check mark on the current one
+    _tab_menu = sec( window_items );
+    _tab_action = new SimpleAction.stateful( "select-tab", VariantType.INT32, new Variant.int32( 0 ) );
+    _tab_action.activate.connect((param) => {
+      _nb.page = param.get_int32();
+    });
+    _actions.add_action( _tab_action );
+    update_tab_menu();
     var window_menu = new GLib.MenuItem.submenu( _( "Window" ), window_items );
     window_menu.set_attribute_value( "gtk-macos-special", new Variant.string( "window-submenu" ) );
     menubar.append_item( window_menu );
