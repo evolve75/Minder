@@ -48,6 +48,38 @@ public class Utils {
 
 
   //-------------------------------------------------------------
+  // Creates a private directory in the system's temporary folder.  Returns
+  // null if it cannot be created.
+  public static string? make_temp_dir( string prefix ) {
+    try {
+      return( DirUtils.make_tmp( prefix + "-XXXXXX" ) );
+    } catch( FileError e ) {
+      return( null );
+    }
+  }
+
+  //-------------------------------------------------------------
+  // Removes a directory and everything in it.
+  public static void remove_tree( string path ) {
+    remove_tree_file( File.new_for_path( path ) );
+  }
+
+  private static void remove_tree_file( File file ) {
+    try {
+      var enumerator = file.enumerate_children( FileAttribute.STANDARD_NAME, FileQueryInfoFlags.NOFOLLOW_SYMLINKS );
+      FileInfo? info;
+      while( (info = enumerator.next_file()) != null ) {
+        remove_tree_file( file.get_child( info.get_name() ) );
+      }
+    } catch( Error e ) {
+      // not a directory
+    }
+    try {
+      file.delete();
+    } catch( Error e ) {}
+  }
+
+  //-------------------------------------------------------------
   // Determines if we are executing this within the Pantheon desktop.
   // If we are, we need to use icons in the header bar that contain
   // color.

@@ -86,7 +86,10 @@ public class ExportXMind8 : Export {
   public override bool export( string fname, MindMap map ) {
 
     // Create temporary directory to place contents in
-    var dir = DirUtils.mkdtemp( "minderXXXXXX" );
+    var dir = Utils.make_temp_dir( "minder-xmind" );
+    if( dir == null ) {
+      return( false );
+    }
 
     var styles    = new Array<Xml.Node*>();
     var file_list = new FileItems();
@@ -106,6 +109,8 @@ public class ExportXMind8 : Export {
 
     // Archive the contents
     archive_contents( dir, fname, file_list );
+
+    Utils.remove_tree( dir );
 
     return( true );
 
@@ -615,7 +620,10 @@ public class ExportXMind8 : Export {
   public override bool import( string fname, MindMap map ) {
 
     // Create temporary directory to place contents in
-    var dir = DirUtils.mkdtemp( "minderXXXXXX" );
+    var dir = Utils.make_temp_dir( "minder-xmind" );
+    if( dir == null ) {
+      return( false );
+    }
 
     // Unarchive the files
     unarchive_contents( fname, dir );
@@ -624,6 +632,7 @@ public class ExportXMind8 : Export {
 
     // If this .xmind file should be handled by XMind 2021, return false
     if( FileUtils.test( Path.build_filename( dir, "content.json" ), FileTest.EXISTS ) ) {
+      Utils.remove_tree( dir );
       return( false );
     }
 
@@ -631,6 +640,8 @@ public class ExportXMind8 : Export {
     var content = Path.build_filename( dir, "content.xml" );
     import_content( map, content, dir, id_map );
     import_styles( map, styles, id_map );
+
+    Utils.remove_tree( dir );
 
     // Update the drawing area and save the result
     map.queue_draw();
