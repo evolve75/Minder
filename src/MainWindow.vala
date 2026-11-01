@@ -492,10 +492,36 @@ public class MainWindow : Gtk.ApplicationWindow {
   //-------------------------------------------------------------
   // Returns the tab label associated with the given notebook page.
   private string get_tab_label_name( int page_num ) {
+    var name = get_tab_display_name( page_num );
+    return( name.has_suffix( " *" ) ? name.substring( 0, name.length - 2 ) : name );
+  }
+
+  //-------------------------------------------------------------
+  // Returns the text of the tab as shown, including the unsaved marker.
+  private string get_tab_display_name( int page_num ) {
     var page = _nb.get_nth_page( page_num );
     var tab  = _nb.get_tab_label( page );
     var label = (Label)Utils.get_child_at_index( tab, TAB_LABEL_INDEX );
     return( label.label );
+  }
+
+  //-------------------------------------------------------------
+  // Returns the text to show in the tab: the name, followed by an asterisk
+  // when the document has changes that are not saved.
+  private string tab_title( MindMap map, string label ) {
+    return( map.doc.save_needed ? (label + " *") : label );
+  }
+
+  //-------------------------------------------------------------
+  // Shows the macOS edited marker (a dot in the close button) when the current
+  // document has unsaved changes.
+  private void update_edited_marker() {
+#if MACOS_WINDOW
+    var map = get_current_map();
+    if( map != null ) {
+      MacosWindow.set_edited( this, map.doc.save_needed );
+    }
+#endif
   }
 
   //-------------------------------------------------------------
@@ -506,7 +532,7 @@ public class MainWindow : Gtk.ApplicationWindow {
     var lock = (Image)Utils.get_child_at_index( tab, TAB_LOCK_INDEX );
     var lbl  = (Label)Utils.get_child_at_index( tab, TAB_LABEL_INDEX );
     @lock.visible    = !editable;
-    lbl.label        = label;
+    lbl.label        = tab_title( get_map( page_num ), label );
     lbl.tooltip_text = tooltip;
 #if PRIMARY_COMMAND
     update_tab_menu();
@@ -590,6 +616,7 @@ public class MainWindow : Gtk.ApplicationWindow {
     do_buffer_changed( map.current_undo_buffer() );
     on_current_changed( map );
     update_title( map );
+    update_edited_marker();
     canvas_changed( map );
     _brain.set_list( map.model.braindump );
     _brain_btn.sensitive = map.editable;
@@ -750,6 +777,11 @@ public class MainWindow : Gtk.ApplicationWindow {
 
     map.doc.save_changed.connect(() => {
       tab_close.icon_name = (weak_map.doc.save_needed ? "media-record-symbolic" : "window-close-symbolic" );
+      tab_label.label     = tab_title( weak_map, weak_map.doc.label );
+#if PRIMARY_COMMAND
+      update_tab_menu();
+#endif
+      update_edited_marker();
     });
 
     var tab_revealer = new Revealer() {
@@ -3468,11 +3500,27 @@ public class MainWindow : Gtk.ApplicationWindow {
     if( (_tab_menu == null) || (_nb == null) ) return;
     _tab_menu.remove_all();
     for( int i=0; i<_nb.get_n_pages(); i++ ) {
-      var item = new GLib.MenuItem( get_tab_label_name( i ), null );
+      var item = new GLib.MenuItem( get_tab_display_name( i ), null );
       item.set_action_and_target_value( "win.select-tab", new Variant.int32( i ) );
       _tab_menu.append_item( item );
     }
     _tab_action.set_state( new Variant.int32( _nb.page ) );
+#if MACOS_WINDOW
+    // The Dock menu lists the same tabs, unsaved ones included
+    string[] titles = {};
+    for( int i=0; i<_nb.get_n_pages(); i++ ) {
+      titles += get_tab_display_name( i );
+    }
+    MacosWindow.set_dock_tabs( titles, _nb.page );
+#endif
+  }
+
+  //-------------------------------------------------------------
+  // Shows the tab at the given position
+  public void select_tab( int index ) {
+    if( (index >= 0) && (index < _nb.get_n_pages()) ) {
+      _nb.page = index;
+    }
   }
 
   //-------------------------------------------------------------

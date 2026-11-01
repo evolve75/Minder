@@ -145,3 +145,77 @@ minder_macos_clear_recent_documents (void)
 {
   [[NSDocumentController sharedDocumentController] clearRecentDocuments: nil];
 }
+
+void
+minder_macos_window_set_edited (GtkWindow *window, gboolean edited)
+{
+  GtkNative  *native  = GTK_NATIVE (window);
+  GdkSurface *surface = (native != NULL) ? gtk_native_get_surface (native) : NULL;
+  if (surface == NULL || !GDK_IS_MACOS_SURFACE (surface))
+    return;
+  NSWindow *win = (__bridge NSWindow *) gdk_macos_surface_get_native_window (GDK_MACOS_SURFACE (surface));
+  if (win != nil)
+    [win setDocumentEdited: edited];
+}
+
+/* The tabs shown in the Dock menu, and what to do when one is chosen */
+static NSArray<NSString *> *dock_titles = nil;
+static int                  dock_current = -1;
+
+@interface MinderDockTarget : NSObject
+@property (nonatomic) MinderDockSelectFunc callback;
+@property (nonatomic) gpointer             user_data;
+- (void) choose: (NSMenuItem *) item;
+@end
+
+@implementation MinderDockTarget
+- (void) choose: (NSMenuItem *) item
+{
+  if (self.callback != NULL)
+    self.callback ((int) [item tag], self.user_data);
+}
+@end
+
+static MinderDockTarget *dock_target = nil;
+
+void
+minder_macos_set_dock_tabs (const char * const *titles, int n_titles, int current)
+{
+  NSMutableArray<NSString *> *list = [NSMutableArray array];
+  for (int i = 0; i < n_titles; i++)
+    [list addObject: [NSString stringWithUTF8String: titles[i]]];
+  dock_titles  = list;
+  dock_current = current;
+}
+
+void
+minder_macos_set_dock_handler (MinderDockSelectFunc callback, gpointer user_data)
+{
+  id delegate = [NSApp delegate];
+  if (delegate == nil || callback == NULL)
+    return;
+
+  dock_target = [[MinderDockTarget alloc] init];
+  dock_target.callback  = callback;
+  dock_target.user_data = user_data;
+
+  /* The menu is built each time the Dock asks for it */
+  SEL sel = @selector (applicationDockMenu:);
+  NSMenu *(^block) (id, NSApplication *) = ^NSMenu *(id self_, NSApplication *app) {
+    NSMenu *menu = [[NSMenu alloc] init];
+    for (NSUInteger i = 0; i < [dock_titles count]; i++)
+      {
+        NSMenuItem *item = [[NSMenuItem alloc] initWithTitle: dock_titles[i]
+                                                      action: @selector (choose:)
+                                               keyEquivalent: @""];
+        item.target = dock_target;
+        item.tag    = (NSInteger) i;
+        item.state  = ((int) i == dock_current) ? NSControlStateValueOn : NSControlStateValueOff;
+        [menu addItem: item];
+      }
+    return menu;
+  };
+  IMP imp = imp_implementationWithBlock (block);
+  if (!class_addMethod ([delegate class], sel, imp, "@@:@"))
+    class_replaceMethod ([delegate class], sel, imp, "@@:@");
+}
