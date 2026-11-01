@@ -68,7 +68,6 @@ dependencies = [
     dependency('glib-2.0'),
     dependency('cairo'),
     dependency('gee-0.8'),
-    dependency('granite-7'),
     dependency('gtk4'),
     dependency('libxml-2.0'),
     dependency('libarchive'),
@@ -81,6 +80,13 @@ dependencies = [
     librsvg,
     math_dep
 ]
+
+if get_option('granite')
+  dependencies += dependency('granite-7')
+else
+  dependencies += dependency('libadwaita-1', version: '>=1.2')
+  sources += files('src/compat/Granite.vala')
+endif
 
 subdir('tests')
 

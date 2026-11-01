@@ -1,0 +1,2 @@
+option('granite', type: 'boolean', value: true,
+  description: 'Use elementary Granite. When false, an in-tree compat shim over GTK4/libadwaita is built instead.')
