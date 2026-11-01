@@ -2,14 +2,17 @@ name: Vala Linter
 
 on: [push]
 
+permissions:
+  contents: read
+
 jobs:
   lint:
 
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v1
-    - uses: elementary/actions/vala-lint@master
+    - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+    - uses: elementary/actions/vala-lint@621f6990260e4f71edde5dd9e3602eaa24229cf9 # master
       with:
         dir: src/
         conf: .vala-lint.conf
