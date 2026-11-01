@@ -30,6 +30,10 @@ public class FormulaRecognizer : Object {
 
   //-------------------------------------------------------------
   // Finds either the explicitly configured recognizer or the default command.
+  // The command runs with the user's rights and is taken from the environment
+  // (MINDER_FORMULA_OCR) or PATH, so both are trusted as much as the user's
+  // shell is; nothing from a map file reaches the command line.  The image is
+  // passed as an argument vector, never through a shell.
   private static string? find_command() {
     var configured = Environment.get_variable( "MINDER_FORMULA_OCR" );
     if( (configured != null) && (configured.strip() != "") ) {

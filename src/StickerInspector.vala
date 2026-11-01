@@ -138,7 +138,7 @@ public class StickerInspector : Box {
 
     var show = new Button.with_label( _( "Show Custom Sticker Directory" ) );
     show.clicked.connect(() => {
-      Utils.open_url( "file://" + _sticker_set.sticker_dir() );
+      Utils.open_url( File.new_for_path( _sticker_set.sticker_dir() ).get_uri() );
     });
 
     box.append( show );
