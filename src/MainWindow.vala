@@ -2012,6 +2012,9 @@ public class MainWindow : Gtk.ApplicationWindow {
       update_title( map );
       map.doc.load( UpgradeAction.NUM, (valid, msg) => {
         if( valid ) {
+#if PRIMARY_COMMAND
+          add_recent( fname );
+#endif
           save_tab_state( _nb.page );
         } else {
           close_current_tab();
@@ -2189,7 +2192,13 @@ public class MainWindow : Gtk.ApplicationWindow {
             fname += ".minder";
           }
           map.doc.filename = fname;
+#if PRIMARY_COMMAND
+          if( map.doc.save() ) {
+            add_recent( fname );
+          }
+#else
           map.doc.save();
+#endif
           if( remove_after_save ) {
             var page = page_of( map );
             map.close();
@@ -3108,6 +3117,8 @@ public class MainWindow : Gtk.ApplicationWindow {
     s = sec( m );
     append_menubar_item( s, KeyCommand.FILE_NEW,      _( "New" ) );
     append_menubar_item( s, KeyCommand.FILE_OPEN,     _( "Open…" ) );
+    _recent_menu = sub( s, _( "Open Recent" ) );
+    setup_recent_actions();
     append_menubar_item( s, KeyCommand.FILE_OPEN_DIR, _( "Open Directory as Map…" ) );
     s = sec( m );
     append_menubar_item( s, KeyCommand.FILE_SAVE,    _( "Save" ) );
@@ -3418,6 +3429,76 @@ public class MainWindow : Gtk.ApplicationWindow {
   // Enables the generated menu items that are valid for the current map
   // state, and keeps Undo/Redo in step with the current undo buffer.
   private bool _menu_update_pending = false;
+
+  private GLib.Menu?     _recent_menu = null;
+  private SimpleAction?  _clear_recent_action = null;
+
+  //-------------------------------------------------------------
+  // Creates the actions behind the Open Recent submenu and fills it.
+  private void setup_recent_actions() {
+    _actions.remove_action( "open-recent" );
+    var open_recent = new SimpleAction( "open-recent", VariantType.STRING );
+    open_recent.activate.connect((param) => {
+      var fname = param.get_string();
+      if( !open_file( fname, false ) ) {
+        remove_recent( fname );
+      }
+    });
+    _actions.add_action( open_recent );
+    _actions.remove_action( "clear-recent" );
+    _clear_recent_action = new SimpleAction( "clear-recent", null );
+    _clear_recent_action.activate.connect((v) => { clear_recent(); });
+    _actions.add_action( _clear_recent_action );
+    update_recent_menu();
+  }
+
+  //-------------------------------------------------------------
+  // Puts the file at the top of the recent documents
+  public void add_recent( string fname ) {
+    if( !fname.has_suffix( ".minder" ) ) return;
+    _settings.set_strv( "recent-files", RecentFiles.add( _settings.get_strv( "recent-files" ), fname ) );
+#if MACOS_WINDOW
+    MacosWindow.note_recent_document( fname );
+#endif
+    update_recent_menu();
+  }
+
+  //-------------------------------------------------------------
+  // Forgets a file that can no longer be opened
+  private void remove_recent( string fname ) {
+    _settings.set_strv( "recent-files", RecentFiles.remove( _settings.get_strv( "recent-files" ), fname ) );
+    update_recent_menu();
+  }
+
+  //-------------------------------------------------------------
+  // Empties the recent documents, including the system's list
+  private void clear_recent() {
+    _settings.set_strv( "recent-files", {} );
+#if MACOS_WINDOW
+    MacosWindow.clear_recent_documents();
+#endif
+    update_recent_menu();
+  }
+
+  //-------------------------------------------------------------
+  // Rebuilds the Open Recent submenu.  Files that no longer exist are hidden
+  // but stay in the setting, since a volume may only be unmounted for now.
+  private void update_recent_menu() {
+    if( _recent_menu == null ) return;
+    _recent_menu.remove_all();
+    var list  = RecentFiles.prune( _settings.get_strv( "recent-files" ) );
+    var files = new GLib.Menu();
+    foreach( var fname in list ) {
+      var item = new GLib.MenuItem( RecentFiles.label( list, fname ), null );
+      item.set_action_and_target_value( "win.open-recent", new Variant.string( fname ) );
+      files.append_item( item );
+    }
+    _recent_menu.append_section( null, files );
+    var clear = new GLib.Menu();
+    clear.append( _( "Clear Menu" ), "win.clear-recent" );
+    _recent_menu.append_section( null, clear );
+    _clear_recent_action.set_enabled( list.length > 0 );
+  }
 
   private GLib.Menu?     _tab_menu   = null;
   private SimpleAction?  _tab_action = null;

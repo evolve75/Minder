@@ -46,6 +46,11 @@ void minder_macos_set_reopen_handler (MinderReopenFunc callback, gpointer user_d
  * Call before GTK creates its font map. */
 void minder_macos_register_bundled_fonts (void);
 
+/* Adds the file to the system's recent documents (Apple menu, Dock menu), or
+ * clears that list when path is NULL. */
+void minder_macos_note_recent_document (const char *path);
+void minder_macos_clear_recent_documents (void);
+
 G_END_DECLS
 
 #endif /* MINDER_MACOS_WINDOW_H */
