@@ -112,6 +112,11 @@ public class Minder : Gtk.Application {
     MacosWindow.set_reopen_handler(() => {
       appwin.present();
     });
+    // The Dock menu lists the open tabs
+    MacosWindow.set_dock_handler((index) => {
+      appwin.present();
+      appwin.select_tab( index );
+    });
 #endif
 
     // Create the main window
