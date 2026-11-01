@@ -250,8 +250,13 @@ minder_macos_window_set_edited (GtkWindow *window, gboolean edited)
   if (surface == NULL || !GDK_IS_MACOS_SURFACE (surface))
     return;
   NSWindow *win = (__bridge NSWindow *) gdk_macos_surface_get_native_window (GDK_MACOS_SURFACE (surface));
-  if (win != nil)
-    [win setDocumentEdited: edited];
+  if (win == nil)
+    return;
+  [win setDocumentEdited: edited];
+  /* The edited state makes AppKit lay the titlebar out again, which puts the
+   * buttons back at their standard height, so centre them once more */
+  center_standard_buttons (win);
+  dispatch_async (dispatch_get_main_queue (), ^{ center_standard_buttons (win); });
 }
 
 /* The tabs shown in the Dock menu, and what to do when one is chosen */
