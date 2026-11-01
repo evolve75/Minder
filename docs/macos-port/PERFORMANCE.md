@@ -7,8 +7,8 @@ every figure below can be reproduced.
 ## How to measure
 
 ```sh
-macos/bench/gen-map.py ~/Desktop/some.minder 5000 /tmp/map-5000.minder           # synthetic map
-macos/bench/gen-map.py ~/Desktop/some.minder 700 /tmp/formulas-700.minder formulas
+tools/bench/gen-map.py ~/Desktop/some.minder 5000 /tmp/map-5000.minder           # synthetic map
+tools/bench/gen-map.py ~/Desktop/some.minder 700 /tmp/formulas-700.minder formulas
 Minder.app/Contents/MacOS/Minder --benchmark /tmp/map-5000.minder
 MINDER_BENCH_CHURN=1 Minder.app/Contents/MacOS/Minder --benchmark /tmp/map-1000.minder   # open/close memory
 ```
