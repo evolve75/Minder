@@ -1,6 +1,6 @@
 # Minder on macOS
 
-[![macOS build](https://github.com/evolve75/Minder/actions/workflows/macos.yml/badge.svg)](https://github.com/evolve75/Minder/actions/workflows/macos.yml)
+[![macOS build](https://github.com/evolve75/Minder/actions/workflows/macos.yml/badge.svg?branch=features/macos-port)](https://github.com/evolve75/Minder/actions/workflows/macos.yml)
 
 This fork builds and runs Minder natively on macOS (Apple silicon and Intel, macOS 13 or later). The macOS
 changes are compiled in only on macOS, so Linux and elementary OS builds keep their current behaviour.
