@@ -22,7 +22,9 @@
 # The map reuses the header and node styling of an existing map (the template),
 # replacing its nodes with a tree of the requested size.
 #
-# Usage: gen-map.py TEMPLATE.minder NODE_COUNT OUTPUT.minder [WITH_NOTES]
+# Usage: gen-map.py TEMPLATE.minder NODE_COUNT OUTPUT.minder [notes] [formulas]
+#   notes    - give every node a Markdown note
+#   formulas - make every node a distinct LaTeX formula
 
 import copy
 import io
@@ -40,7 +42,7 @@ def load_map(path):
         return ET.fromstring(tar.extractfile("map.xml").read())
 
 
-def make_tree(template_node, count, with_notes):
+def make_tree(template_node, count, with_notes, with_formulas=False):
     next_id = [1]
     made = [0]
 
@@ -55,7 +57,8 @@ def make_tree(template_node, count, with_notes):
         name = node.find("nodename")
         for t in list(name):
             name.remove(t)
-        ET.SubElement(name, "text", {"data": "%s item %d" % (prefix, made[0])})
+        label = ("$x_{%d}^{2} + \\frac{%d}{y}$" % (made[0], made[0])) if with_formulas else ("%s item %d" % (prefix, made[0]))
+        ET.SubElement(name, "text", {"data": label})
         note = node.find("nodenote")
         if note is not None:
             note.text = "Note %d with **bold** and a list\n\n* one\n* two" % made[0] if with_notes else ""
@@ -83,13 +86,15 @@ def make_tree(template_node, count, with_notes):
 
 def main():
     template, count, out = sys.argv[1], int(sys.argv[2]), sys.argv[3]
-    with_notes = len(sys.argv) > 4
+    options = sys.argv[4:]
+    with_notes = "notes" in options
+    with_formulas = "formulas" in options
     root = load_map(template)
     nodes = root.find("nodes")
     first = nodes[0]
     for n in list(nodes):
         nodes.remove(n)
-    nodes.append(make_tree(first, count, with_notes))
+    nodes.append(make_tree(first, count, with_notes, with_formulas))
     data = ET.tostring(root, encoding="unicode").encode()
     info = tarfile.TarInfo("map.xml")
     info.size = len(data)
