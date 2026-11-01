@@ -37,9 +37,9 @@ public class ExportFreeplane : Export {
   public override bool export( string fname, MindMap map ) {
     Xml.Doc*  doc  = new Xml.Doc( "1.0" );
     doc->set_root_element( export_map( map ) );
-    doc->save_format_file( fname, 1 );
+    var res = doc->save_format_file( fname, 1 );
     delete doc;
-    return( false );
+    return( res >= 0 );
   }
 
   //-------------------------------------------------------------
