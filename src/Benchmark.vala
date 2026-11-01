@@ -65,6 +65,7 @@ public class Benchmark {
     time_scenario( map, "hidpi",    1600, 1000, 2.0, 1.0 );
     time_scenario( map, "zoom-out", 1600, 1000, 1.0, 0.1 );
 
+    time_save( map );
     time_images();
     time_text_helpers();
 
@@ -75,6 +76,19 @@ public class Benchmark {
 
     time_animation( map, (owned) done );
 
+  }
+
+  //-------------------------------------------------------------
+  // Times a full save of the document (the work a recovery copy also does).
+  // The file the map was loaded from is overwritten, so use a copy.
+  private static void time_save( MindMap map ) {
+    var times = new double[3];
+    for( int i=0; i<3; i++ ) {
+      var start = GLib.get_monotonic_time();
+      map.doc.save( true );
+      times[i] = (GLib.get_monotonic_time() - start) / 1000.0;
+    }
+    stdout.printf( "BENCH save per call: %.1f ms, %.1f ms, %.1f ms\n", times[0], times[1], times[2] );
   }
 
   //-------------------------------------------------------------

@@ -23,6 +23,7 @@ device scale 2, `zoom-out` = scale 0.1, whole map visible), plus checks and micr
 | `latex-clip-identical` | same for the clipped formula mask |
 | `image-draw` | cost of painting a 300x200 image with and without the cached surface |
 | `text-helpers` | cost of Markdown and word-boundary helpers per call |
+| `save` | time of a full save (what the 30-second recovery copy also costs); overwrites the file, so use a copy |
 | `animation` | frames drawn and duration of a zoom-to-fit |
 | `tab-churn` (with `MINDER_BENCH_CHURN=1`) | memory growth over repeated open/close of a map |
 
@@ -54,6 +55,12 @@ Draw time per frame in milliseconds (mean). Before = start of the performance wo
 * **Tried and not shipped:** driving animations from the frame clock (#50) showed no gain here;
   compiling the regular expressions once (#51, #52) saves microseconds because the helpers cost
   2-17 us per call.
+
+## Save and recovery cost
+
+A full save (XML, archive, images) takes about 17 ms for a 1000-node map and 75 ms for 5000 nodes, so
+the crash-recovery copy written every 30 seconds while a document has unsaved changes (#55) is not
+noticeable.
 
 ## Known limits
 
