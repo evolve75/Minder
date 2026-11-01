@@ -75,6 +75,68 @@ show_standard_buttons (NSWindow *win)
   center_standard_buttons (win);
 }
 
+/* GDK starts a window move from the header bar by calling AppKit's
+ * performWindowDragWithEvent: with the last event it saw.  On current macOS that
+ * call does not move the window (or moves it a few points and stalls), so the
+ * header bar cannot be used to move the window.  Follow the pointer ourselves
+ * instead: remember where the pointer and the window were, and place the window
+ * at the same offset until the mouse button is released. */
+static id window_move_monitor = nil;
+
+static void
+install_window_drag_fix (NSWindow *win)
+{
+  static BOOL installed = NO;
+  if (installed)
+    return;
+  installed = YES;
+
+  Class cls = [win class];
+  Method method = class_getInstanceMethod (cls, @selector (beginManualMove));
+  if (method == NULL)
+    return;
+  Ivar in_move   = class_getInstanceVariable (cls, "inMove");
+  Ivar in_manual = class_getInstanceVariable (cls, "inManualMove");
+  Ivar in_resize = class_getInstanceVariable (cls, "inManualResize");
+  if (in_move == NULL || in_manual == NULL || in_resize == NULL)
+    return;
+
+  method_setImplementation (method, imp_implementationWithBlock (^(id self_) {
+    char *base = (char *) (__bridge void *) self_;
+    if (*(BOOL *) (base + ivar_getOffset (in_move)) ||
+        *(BOOL *) (base + ivar_getOffset (in_manual)) ||
+        *(BOOL *) (base + ivar_getOffset (in_resize)) ||
+        window_move_monitor != nil)
+      return;
+
+    NSWindow *window = (NSWindow *) self_;
+    NSPoint   start  = [NSEvent mouseLocation];
+    NSPoint   origin = [window frame].origin;
+
+    /* GDK swallows the drag events while this is set and clears it on mouse-up */
+    *(BOOL *) (base + ivar_getOffset (in_manual)) = YES;
+
+    window_move_monitor = [NSEvent addLocalMonitorForEventsMatchingMask: (NSEventMaskLeftMouseDragged | NSEventMaskLeftMouseUp)
+                                                                handler: ^NSEvent *(NSEvent *event) {
+      BOOL finished = ([event type] == NSEventTypeLeftMouseUp) || (([NSEvent pressedMouseButtons] & 1) == 0);
+      if ([event type] == NSEventTypeLeftMouseDragged && !finished)
+        {
+          NSPoint now   = [NSEvent mouseLocation];
+          NSRect  frame = [window frame];
+          frame.origin  = NSMakePoint (origin.x + (now.x - start.x), origin.y + (now.y - start.y));
+          [window setFrame: [window constrainFrameRect: frame toScreen: [window screen]] display: NO];
+          return nil;
+        }
+      if (finished)
+        {
+          [NSEvent removeMonitor: window_move_monitor];
+          window_move_monitor = nil;
+        }
+      return event;
+    }];
+  }));
+}
+
 gboolean
 minder_macos_window_use_native_controls (GtkWindow *window)
 {
@@ -90,6 +152,8 @@ minder_macos_window_use_native_controls (GtkWindow *window)
       NSWindow *win = (__bridge NSWindow *) gdk_macos_surface_get_native_window (GDK_MACOS_SURFACE (surface));
       if (win == nil)
         return FALSE;
+
+      install_window_drag_fix (win);
 
       [win setStyleMask: [win styleMask] | NSWindowStyleMaskTitled
                                          | NSWindowStyleMaskClosable
