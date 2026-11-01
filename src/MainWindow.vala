@@ -2226,14 +2226,16 @@ public class MainWindow : Gtk.ApplicationWindow {
             fname += ".minder";
           }
           map.doc.filename = fname;
+          var saved = map.doc.save();
 #if PRIMARY_COMMAND
-          if( map.doc.save() ) {
+          if( saved ) {
             add_recent( fname );
           }
-#else
-          map.doc.save();
 #endif
-          if( remove_after_save ) {
+          if( !saved ) {
+            // The error dialog is up; keep the tab, and its changes, open
+            map.canvas.grab_focus();
+          } else if( remove_after_save ) {
             var page = page_of( map );
             map.close();
             remove_tab( page );
