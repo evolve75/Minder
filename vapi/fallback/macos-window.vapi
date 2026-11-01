@@ -25,4 +25,8 @@
 namespace MacosWindow {
   [CCode (cname = "minder_macos_window_use_native_controls")]
   public bool use_native_controls( Gtk.Window window );
+  [CCode (cname = "MinderReopenFunc", has_target = true, simple_generics = true)]
+  public delegate void ReopenFunc();
+  [CCode (cname = "minder_macos_set_reopen_handler")]
+  public void set_reopen_handler( [CCode (delegate_target_pos = 1.1)] ReopenFunc callback );
 }

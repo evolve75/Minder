@@ -23,6 +23,7 @@
 #include <gdk/macos/gdkmacos.h>
 
 #include "macos-window.h"
+#import <objc/runtime.h>
 
 /* GDK hides the standard buttons of its borderless windows, and does so again
  * whenever the window changes state, so show them after each such change. */
@@ -90,4 +91,23 @@ minder_macos_window_use_native_controls (GtkWindow *window)
         }
       return TRUE;
     }
+}
+
+void
+minder_macos_set_reopen_handler (MinderReopenFunc callback, gpointer user_data)
+{
+  id delegate = [NSApp delegate];
+  if (delegate == nil || callback == NULL)
+    return;
+
+  /* GTK's application delegate does not implement the reopen event */
+  SEL sel = @selector (applicationShouldHandleReopen:hasVisibleWindows:);
+  BOOL (^block) (id, NSApplication *, BOOL) = ^BOOL (id self_, NSApplication *app, BOOL has_visible) {
+    if (!has_visible)
+      callback (user_data);
+    return YES;
+  };
+  IMP imp = imp_implementationWithBlock (block);
+  if (!class_addMethod ([delegate class], sel, imp, "c@:@c"))
+    class_replaceMethod ([delegate class], sel, imp, "c@:@c");
 }

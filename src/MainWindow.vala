@@ -434,6 +434,12 @@ public class MainWindow : Gtk.ApplicationWindow {
     // Load the templates
     _templates.load();
 
+#if PRIMARY_COMMAND
+    // Like other macOS apps, closing the window leaves Minder running; clicking
+    // the Dock icon shows the window again and Quit (Cmd-Q) exits
+    hide_on_close = true;
+#endif
+
     close_request.connect(() => {
       save_window_size();
       save_tabs();
