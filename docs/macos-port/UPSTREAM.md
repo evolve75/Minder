@@ -42,7 +42,7 @@ how self-contained they are:
 | Change | Why it is upstreamable | Files |
 |---|---|---|
 | Ignore indentation whitespace when loading node text (#24) | A general bug: indented map XML puts a blank text node before `<text>`; not macOS specific | `Utils.vala`, `Node.vala`, `Connection.vala`, `NodeGroup.vala` |
-| `granite`, `latex`, `webkit` Meson options | Default `true`, no behaviour change | `meson.build`, `meson_options.txt`, `LatexRenderer.vala`, `ReleaseNotes.vala` |
+| `granite`, `latex`, `webkit` Meson options | Default keeps the current behaviour (`webkit` is `auto`: on except macOS) | `meson.build`, `meson_options.txt`, `LatexRenderer.vala`, `ReleaseNotes.vala` |
 | In-tree Granite compat shim | Only built with `-Dgranite=false` | `src/compat/Granite.vala` |
 | `post_install` tolerates missing tools; librsvg fallback vapi | Helps any non-GNOME platform | `meson.build`, `vapi/fallback/` |
 | GNOME schema guard in `Application.vala` | Avoids an abort when the schema is absent | `Application.vala` |
@@ -60,7 +60,7 @@ shims (`granite`, `latex`, `webkit`, all defaulting to the current behaviour), t
 stability work (crash recovery, safe saving, freed tabs) and drawing performance. The second group is
 the macOS port: docs, the menu bar and shortcuts, window and Dock behaviour, packaging, LaTeX
 support and the macOS polish. Docs and CI come last. Every commit from the WebKit option onward
-builds with `-Dgranite=false -Dlatex=false -Dwebkit=false` (the three before it need Lasem and
+builds with `-Dgranite=false -Dlatex=false` (the three before it need Lasem and
 WebKit installed, as on Linux).
 
 ```sh
