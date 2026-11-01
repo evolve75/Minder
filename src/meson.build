@@ -99,6 +99,7 @@ sources += files(
     'UndoTextItem.vala',
     'UnicodeInsert.vala',
     'UrlEditor.vala',
+    'UrlSafety.vala',
     'Utils.vala',
     'XmlFragment.vala',
     'XmlSafety.vala',
