@@ -21,7 +21,7 @@ jobs:
     - name: Configure
       run: |
         source macos/env.sh
-        meson setup build-mac -Dgranite=false -Dlatex=false -Dwebkit=false
+        meson setup build-mac -Dgranite=false -Dlatex=false
 
     - name: Build
       run: |

@@ -5,7 +5,7 @@ Requires Homebrew and Xcode command-line tools.
 ```sh
 brew bundle --file=Brewfile        # toolchain and libraries
 source macos/env.sh                # keg-only pkg-config paths
-meson setup build-mac -Dgranite=false -Dlatex=false -Dwebkit=false
+meson setup build-mac -Dgranite=false -Dlatex=false
 meson compile -C build-mac
 meson test -C build-mac            # minder-regress
 ```
@@ -30,7 +30,7 @@ and `GDK_PIXBUF_MODULE_FILE` at the bundle. It is not signed or notarized.
 |---|---|---|
 | `granite` | true | Build the in-tree compat shim (`src/compat/Granite.vala`) over GTK4/libadwaita. |
 | `latex` | true | Formulas are shown as plain text when false (no Lasem). `macos/make-app.sh` turns it on when `lasem-0.6` is found. |
-| `webkit` | true | Release notes open in the system browser. |
+| `webkit` | auto | `auto` is on everywhere except macOS. When false, release notes open in the system browser. |
 | `primary-modifier` | auto | `auto` = Command on macOS, Control elsewhere. |
 
 ## What differs from Linux

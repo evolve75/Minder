@@ -124,7 +124,11 @@ if primary_modifier == 'command'
   add_project_arguments(['--define=PRIMARY_COMMAND'], language: 'vala')
 endif
 
-if get_option('webkit')
+use_webkit = get_option('webkit')
+if use_webkit == 'auto'
+  use_webkit = (host_machine.system() == 'darwin') ? 'false' : 'true'
+endif
+if use_webkit == 'true'
   dependencies += dependency('webkitgtk-6.0')
   add_project_arguments(['--define=WEBKIT'], language: 'vala')
 endif

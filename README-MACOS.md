@@ -45,7 +45,7 @@ You need Homebrew and the Xcode command-line tools.
 ```sh
 brew bundle --file=Brewfile        # toolchain and libraries
 source macos/env.sh                # pkg-config paths for the keg-only formulae
-meson setup build-mac -Dgranite=false -Dlatex=false -Dwebkit=false
+meson setup build-mac -Dgranite=false -Dlatex=false
 meson compile -C build-mac
 meson test -C build-mac            # runs minder-regress
 ```
@@ -67,7 +67,7 @@ built it. Signing for distribution is covered in [`docs/macos-port/BUILDING.md`]
 |---|---|---|
 | `granite` | true | Uses the in-tree compatibility layer over GTK4 and libadwaita (`src/compat/Granite.vala`). |
 | `latex` | true | Formulas are shown as plain text (no Lasem). |
-| `webkit` | true | Release notes open in the system browser. |
+| `webkit` | auto | `auto` is on everywhere except macOS. When false, release notes open in the system browser. |
 | `primary-modifier` | auto | `auto` is Command on macOS and Control elsewhere. |
 
 ### LaTeX formulas (optional)
