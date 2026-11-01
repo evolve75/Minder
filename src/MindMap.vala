@@ -476,7 +476,7 @@ public class MindMap {
 
       // Make sure that we save the document
       doc.save_xml();
-      doc.save();
+      doc.save( false, true );
 
       // Redraw the canvas
       _canvas.queue_draw();
