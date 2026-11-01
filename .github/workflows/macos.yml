@@ -1,0 +1,48 @@
+name: macOS build
+
+# Builds Minder on macOS, runs the unit tests and builds the unsigned .app
+# whenever a pull request is opened or updated, and on pushes to the macOS branches.
+on:
+  pull_request:
+  push:
+    branches: [features/macos-port, features/macos-integration]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-15
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: brew bundle --file=Brewfile
+
+    - name: Configure
+      run: |
+        source macos/env.sh
+        meson setup build-mac -Dgranite=false -Dlatex=false -Dwebkit=false
+
+    - name: Build
+      run: |
+        source macos/env.sh
+        meson compile -C build-mac
+
+    - name: Test
+      run: |
+        source macos/env.sh
+        meson test -C build-mac --print-errorlogs
+
+    - name: Build the .app bundle
+      run: |
+        source macos/env.sh
+        macos/make-app.sh
+
+    - name: Archive the .app
+      run: ditto -c -k --keepParent build-app/Minder.app Minder-macos-unsigned.zip
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: Minder-macos-unsigned
+        path: Minder-macos-unsigned.zip
+        retention-days: 7
