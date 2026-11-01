@@ -262,7 +262,7 @@ public class Document : Object {
 
     // Open the portable Minder file for reading
     if( archive.open_filename( fname, 16384 ) != Archive.Result.OK ) {
-      Xml.Doc* doc = Xml.Parser.read_file( fname, null, Xml.ParserOption.HUGE );
+      Xml.Doc* doc = XmlSafety.read_file( fname );
       if( doc != null ) {
         found = MapModel.xml_find( doc->get_root_element(), id, ref name );
         delete doc;
@@ -278,7 +278,7 @@ public class Document : Object {
         uint8[] data = new uint8[entry.size() + 1];
         if( archive.read_data( data[0:entry.size()] ) > 0 ) {
           var memory = (string)data;
-          Xml.Doc* doc = Xml.Parser.read_memory( memory, memory.length, null, null, Xml.ParserOption.HUGE );
+          Xml.Doc* doc = XmlSafety.read_memory( memory );
           if( doc != null ) {
             found = MapModel.xml_find( doc->get_root_element(), id, ref name );
             delete doc;
@@ -297,7 +297,7 @@ public class Document : Object {
   //-------------------------------------------------------------
   // Reads in the map.xml file and returns the XML document.
   private Xml.Doc* load_raw() {
-    return Xml.Parser.read_file( get_map_file(), null, (Xml.ParserOption.HUGE | Xml.ParserOption.NOWARNING) );
+    return XmlSafety.read_file( get_map_file(), Xml.ParserOption.NOWARNING );
   }
 
   //-------------------------------------------------------------

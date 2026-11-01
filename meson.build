@@ -152,6 +152,7 @@ test_executable = executable(
     'src/NodeTableModel.vala',
     'src/PixbufPainter.vala',
     'src/XmlFragment.vala',
+    'src/XmlSafety.vala',
     'src/RecentFiles.vala',
     'src/PanedGeometry.vala',
   ),

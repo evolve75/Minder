@@ -32,7 +32,7 @@ public class HtmlToMarkdown {
   }
 
   public static string parse_file( string fname ) {
-    var doc  = Xml.Parser.read_file( fname, null, Xml.ParserOption.HUGE );
+    var doc  = XmlSafety.read_file( fname );
     var text = "";
     if( doc != null ) {
       text = parse_xml( doc->get_root_element() );
