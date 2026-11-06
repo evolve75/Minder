@@ -11,6 +11,11 @@ on:
 permissions:
   contents: read
 
+# Cancel superseded runs on the same ref so rapid pushes don't pile up builds
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: macos-15
@@ -48,4 +53,4 @@ jobs:
       with:
         name: Minder-macos-unsigned
         path: Minder-macos-unsigned.zip
-        retention-days: 7
+        retention-days: 1

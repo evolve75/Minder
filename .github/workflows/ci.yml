@@ -6,6 +6,11 @@ on: [push, pull_request]
 permissions:
   contents: read
 
+# Cancel superseded runs on the same ref so rapid pushes don't pile up builds
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   # This workflow contains a single job called "flatpak"
@@ -35,3 +40,5 @@ jobs:
         repository-name: appcenter
         repository-url: https://flatpak.elementary.io/repo.flatpakrepo
         cache-key: "flatpak-builder-${{ github.sha }}"
+        # CI only verifies the build; the 90-day default retention bloats storage
+        upload-artifact: false
